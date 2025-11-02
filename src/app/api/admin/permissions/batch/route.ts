@@ -21,6 +21,20 @@ interface BatchPermissionRequest {
 }
 
 /**
+ * Impact analysis for a single user
+ */
+interface UserImpact {
+  userId: string
+  email: string
+  currentRole: string
+  newRole?: string
+  permissionsAdded: Permission[]
+  permissionsRemoved: Permission[]
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  conflicts: string[]
+}
+
+/**
  * Response type for batch permission update
  */
 interface BatchPermissionResponse {
@@ -33,16 +47,95 @@ interface BatchPermissionResponse {
   }
   warnings?: Array<{ message: string }>
   conflicts?: Array<{ message: string }>
+  impactAnalysis?: {
+    totalUsersAffected: number
+    riskBreakdown: {
+      critical: number
+      high: number
+      medium: number
+      low: number
+    }
+    userImpacts: UserImpact[]
+    summary: string
+  }
   message?: string
   error?: string
   details?: ValidationError[]
 }
 
 /**
+ * Analyze potential conflicts when removing permissions
+ */
+function analyzeRemovalConflicts(
+  removedPermissions: Permission[],
+  remainingPermissions: Permission[]
+): string[] {
+  const conflicts: string[] = []
+
+  // Check for permission dependencies (if permission X requires Y, but we're removing Y)
+  for (const removed of removedPermissions) {
+    // Common dependency patterns to check
+    const dependencyMap: Record<string, Permission[]> = {
+      'users.edit': ['users.view'],
+      'users.delete': ['users.view', 'users.edit'],
+      'roles.edit': ['roles.view'],
+      'roles.delete': ['roles.view', 'roles.edit'],
+      'permissions.manage': ['permissions.view'],
+    }
+
+    // Check if any remaining permissions depend on the removed one
+    for (const remaining of remainingPermissions) {
+      const deps = dependencyMap[remaining]
+      if (deps && deps.includes(removed)) {
+        conflicts.push(
+          `Removing '${removed}' may break '${remaining}' which depends on it`
+        )
+      }
+    }
+  }
+
+  return [...new Set(conflicts)] // Remove duplicates
+}
+
+/**
+ * Determine risk level for permission changes
+ */
+function calculateRiskLevel(
+  roleChange?: { from: string; to: string },
+  permissionsAdded?: Permission[],
+  permissionsRemoved?: Permission[]
+): 'low' | 'medium' | 'high' | 'critical' {
+  let riskScore = 0
+
+  // Role changes have inherent risk
+  if (roleChange) {
+    if (['ADMIN', 'SUPER_ADMIN'].includes(roleChange.to)) {
+      riskScore += 50 // Critical risk for admin roles
+    } else if (['TEAM_LEAD'].includes(roleChange.to)) {
+      riskScore += 20 // Medium risk for lead roles
+    }
+  }
+
+  // Adding many permissions increases risk
+  const addedCount = permissionsAdded?.length || 0
+  riskScore += addedCount * 5
+
+  // Removing permissions has lower risk but still counts
+  const removedCount = permissionsRemoved?.length || 0
+  riskScore += removedCount * 2
+
+  // Determine risk level
+  if (riskScore >= 50) return 'critical'
+  if (riskScore >= 30) return 'high'
+  if (riskScore >= 10) return 'medium'
+  return 'low'
+}
+
+/**
  * POST /api/admin/permissions/batch
- * 
+ *
  * Update permissions for one or multiple users
- * Supports dry-run mode for previewing changes
+ * Supports dry-run mode for previewing changes with full conflict detection
  */
 export async function POST(request: NextRequest): Promise<NextResponse<BatchPermissionResponse>> {
   try {
@@ -175,8 +268,63 @@ export async function POST(request: NextRequest): Promise<NextResponse<BatchPerm
       )
     }
 
-    // In dry-run mode, return preview
+    // In dry-run mode, return comprehensive impact analysis
     if (dryRun) {
+      // Build detailed impact analysis for each user
+      const userImpacts: UserImpact[] = []
+      const riskCounts = { critical: 0, high: 0, medium: 0, low: 0 }
+
+      for (const targetUser of targetUsers) {
+        const newPermissions = updatedUserPermissions[targetUser.id]
+        const oldPermissions = roleChange
+          ? getRolePermissions(roleChange.from)
+          : getRolePermissions(targetUser.role)
+
+        const addedPerms = permissionChanges?.added || []
+        const removedPerms = permissionChanges?.removed || []
+
+        // Check for conflicts when removing permissions
+        const removalConflicts = analyzeRemovalConflicts(removedPerms, newPermissions)
+
+        // Calculate risk level
+        const riskLevel = calculateRiskLevel(roleChange, addedPerms, removedPerms)
+        riskCounts[riskLevel]++
+
+        userImpacts.push({
+          userId: targetUser.id,
+          email: targetUser.email,
+          currentRole: targetUser.role,
+          newRole: roleChange?.to,
+          permissionsAdded: addedPerms,
+          permissionsRemoved: removedPerms,
+          riskLevel,
+          conflicts: removalConflicts,
+        })
+      }
+
+      // Build warning messages
+      const warnings: Array<{ message: string }> = []
+
+      // Add validation errors as warnings
+      warnings.push(...validationErrors.map(e => ({ message: e.message })))
+
+      // Add risk warnings
+      if (riskCounts.critical > 0) {
+        warnings.push({
+          message: `${riskCounts.critical} user(s) will receive CRITICAL risk changes (e.g., admin role assignment)`,
+        })
+      }
+      if (riskCounts.high > 0) {
+        warnings.push({
+          message: `${riskCounts.high} user(s) will receive HIGH risk changes`,
+        })
+      }
+
+      // Add conflict warnings
+      const allConflicts = userImpacts
+        .flatMap(impact => impact.conflicts)
+        .filter((v, i, a) => a.indexOf(v) === i) // unique
+
       return NextResponse.json({
         success: true,
         preview: true,
@@ -184,7 +332,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<BatchPerm
           added: permissionChanges?.added?.length || 0,
           removed: permissionChanges?.removed?.length || 0,
         },
-        warnings: validationErrors.map(e => ({ message: e.message })),
+        warnings,
+        conflicts: allConflicts.map(msg => ({ message: msg })),
+        impactAnalysis: {
+          totalUsersAffected: targetUsers.length,
+          riskBreakdown: riskCounts,
+          userImpacts,
+          summary: `Affecting ${targetUsers.length} user(s): ${riskCounts.critical} critical, ${riskCounts.high} high, ${riskCounts.medium} medium, ${riskCounts.low} low risk changes`,
+        },
       })
     }
 

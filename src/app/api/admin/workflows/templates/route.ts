@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAdminAuth } from '@/lib/auth-middleware'
 import { workflowDesignerService } from '@/services/workflow-designer.service'
 
+export const dynamic = 'force-dynamic'
+
 export const GET = withAdminAuth(async (req: NextRequest) => {
   try {
     const templates = await workflowDesignerService.getTemplates()

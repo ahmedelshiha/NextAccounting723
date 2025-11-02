@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { dashboardMetricsService } from '@/services/dashboard-metrics.service'
 import { withAdminAuth } from '@/lib/auth-middleware'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 300 // Cache for 5 minutes
 
 export const GET = withAdminAuth(async (req: NextRequest) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo, memo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { AlertCircle, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
+import { AlertCircle, Loader2, ChevronDown, ChevronRight, Search, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { globalEventEmitter } from '@/lib/event-emitter'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
+import { useSession } from 'next-auth/react'
 
 interface RoleFormData {
   name: string
@@ -39,6 +44,82 @@ interface RoleFormModalProps {
   description?: string
 }
 
+const PermissionCategoryGroup = memo(function PermissionCategoryGroup({
+  category,
+  permissions,
+  selectedPermissions,
+  onTogglePermission,
+  isExpanded,
+  onToggleExpanded,
+  searchQuery,
+  isSubmitting,
+}: {
+  category: string
+  permissions: Permission[]
+  selectedPermissions: string[]
+  onTogglePermission: (id: string) => void
+  isExpanded: boolean
+  onToggleExpanded: (category: string) => void
+  searchQuery: string
+  isSubmitting: boolean
+}) {
+  const filteredPerms = useMemo(() => {
+    if (!searchQuery.trim()) return permissions
+    const query = searchQuery.toLowerCase()
+    return permissions.filter(p => 
+      p.name.toLowerCase().includes(query) || 
+      p.description?.toLowerCase().includes(query)
+    )
+  }, [permissions, searchQuery])
+
+  if (filteredPerms.length === 0) return null
+
+  return (
+    <div className="border-b last:border-b-0">
+      <button
+        type="button"
+        onClick={() => onToggleExpanded(category)}
+        className="flex items-center w-full p-3 hover:bg-gray-50 font-medium text-sm text-gray-700 transition-colors"
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
+        )}
+        <span className="flex-1 text-left">{category}</span>
+        <Badge variant="secondary" className="text-xs">
+          {filteredPerms.filter(p => selectedPermissions.includes(p.id)).length}/{filteredPerms.length}
+        </Badge>
+      </button>
+
+      {isExpanded && (
+        <div className="ml-6 space-y-2 py-2 px-3 bg-gray-50">
+          {filteredPerms.map((perm) => (
+            <div key={perm.id} className="flex items-start gap-2">
+              <Checkbox
+                id={perm.id}
+                checked={selectedPermissions.includes(perm.id)}
+                onCheckedChange={() => onTogglePermission(perm.id)}
+                disabled={isSubmitting}
+                className="mt-1"
+              />
+              <label
+                htmlFor={perm.id}
+                className="text-sm cursor-pointer flex-1 py-0.5"
+              >
+                <div className="font-medium text-gray-900">{perm.name}</div>
+                {perm.description && (
+                  <div className="text-xs text-gray-500 mt-0.5">{perm.description}</div>
+                )}
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+})
+
 export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps>(
   function RoleFormModal({
     isOpen,
@@ -53,7 +134,8 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
     const [error, setError] = useState<string | null>(null)
     const [permissions, setPermissions] = useState<Permission[]>([])
     const [loadingPermissions, setLoadingPermissions] = useState(true)
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['Users', 'Roles', 'Permissions']))
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+    const [searchQuery, setSearchQuery] = useState('')
     const [formData, setFormData] = useState<RoleFormData>({
       name: initialData?.name || '',
       description: initialData?.description || '',
@@ -64,6 +146,35 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
     const defaultDescription = mode === 'create'
       ? 'Create a new role with specific permissions'
       : 'Update role information and permissions'
+
+    // Calculate permission counts by category
+    const permissionsByCategory = useMemo(() => {
+      return permissions.reduce((acc, perm) => {
+        const category = perm.category || 'Other'
+        if (!acc[category]) acc[category] = []
+        acc[category].push(perm)
+        return acc
+      }, {} as Record<string, Permission[]>)
+    }, [permissions])
+
+    const selectedCount = formData.permissions.length
+    const filteredCategories = useMemo(() => {
+      if (!searchQuery.trim()) return Object.keys(permissionsByCategory)
+      const query = searchQuery.toLowerCase()
+      return Object.keys(permissionsByCategory).filter(category =>
+        permissionsByCategory[category].some(p =>
+          p.name.toLowerCase().includes(query) ||
+          p.description?.toLowerCase().includes(query)
+        )
+      )
+    }, [permissionsByCategory, searchQuery])
+
+    // Auto-expand categories when searching
+    useEffect(() => {
+      if (searchQuery.trim()) {
+        setExpandedCategories(new Set(filteredCategories))
+      }
+    }, [searchQuery, filteredCategories])
 
     // Load available permissions
     useEffect(() => {
@@ -76,20 +187,25 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
           if (!response.ok) throw new Error('Failed to load permissions')
           const data = await response.json()
           setPermissions(Array.isArray(data) ? data : data.permissions || [])
+          // Initialize expanded categories with first 3
+          const categories = Array.isArray(data)
+            ? [...new Set((data as Permission[]).map(p => p.category))]
+            : (data.permissions ? [...new Set(data.permissions.map((p: Permission) => p.category))] : [])
+          setExpandedCategories(new Set<string>(categories.slice(0, 3) as string[]))
         } catch (err) {
           console.error('Failed to load permissions:', err)
-          // Provide default permissions if API fails
           setPermissions([
-            { id: 'users.view', name: 'View Users', category: 'Users' },
-            { id: 'users.create', name: 'Create Users', category: 'Users' },
-            { id: 'users.edit', name: 'Edit Users', category: 'Users' },
-            { id: 'users.delete', name: 'Delete Users', category: 'Users' },
-            { id: 'roles.view', name: 'View Roles', category: 'Roles' },
-            { id: 'roles.create', name: 'Create Roles', category: 'Roles' },
-            { id: 'roles.edit', name: 'Edit Roles', category: 'Roles' },
-            { id: 'roles.delete', name: 'Delete Roles', category: 'Roles' },
-            { id: 'permissions.manage', name: 'Manage Permissions', category: 'Permissions' },
+            { id: 'users.view', name: 'View Users', category: 'Users', description: 'View user information' },
+            { id: 'users.create', name: 'Create Users', category: 'Users', description: 'Create new users' },
+            { id: 'users.edit', name: 'Edit Users', category: 'Users', description: 'Edit user information' },
+            { id: 'users.delete', name: 'Delete Users', category: 'Users', description: 'Delete users' },
+            { id: 'roles.view', name: 'View Roles', category: 'Roles', description: 'View role information' },
+            { id: 'roles.create', name: 'Create Roles', category: 'Roles', description: 'Create new roles' },
+            { id: 'roles.edit', name: 'Edit Roles', category: 'Roles', description: 'Edit role information' },
+            { id: 'roles.delete', name: 'Delete Roles', category: 'Roles', description: 'Delete roles' },
+            { id: 'permissions.manage', name: 'Manage Permissions', category: 'Permissions', description: 'Manage system permissions' },
           ])
+          setExpandedCategories(new Set(['Users', 'Roles']))
         } finally {
           setLoadingPermissions(false)
         }
@@ -140,9 +256,11 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
       return true
     }
 
+    const { data: session } = useSession()
+
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
       e.preventDefault()
-      
+
       if (!validateForm()) return
 
       setIsSubmitting(true)
@@ -164,6 +282,62 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
         }
 
         const result = await response.json()
+
+        // Log audit event
+        const userId = (session?.user as any)?.id || 'unknown'
+        const tenantId = (session?.user as any)?.tenantId || 'unknown'
+
+        if (mode === 'create') {
+          await AuditLoggingService.logAuditEvent({
+            action: AuditActionType.ROLE_CREATED,
+            severity: AuditSeverity.INFO,
+            userId,
+            tenantId,
+            targetResourceId: result.id,
+            targetResourceType: 'ROLE',
+            description: `Created role: ${formData.name}`,
+            changes: {
+              name: formData.name,
+              description: formData.description,
+              permissions: formData.permissions,
+            },
+          })
+        } else {
+          await AuditLoggingService.logAuditEvent({
+            action: AuditActionType.ROLE_UPDATED,
+            severity: AuditSeverity.INFO,
+            userId,
+            tenantId,
+            targetResourceId: initialData?.id,
+            targetResourceType: 'ROLE',
+            description: `Updated role: ${formData.name}`,
+            changes: {
+              name: formData.name,
+              description: formData.description,
+              permissions: formData.permissions,
+            },
+          })
+        }
+
+        // Emit event for real-time sync
+        if (mode === 'create') {
+          globalEventEmitter.emit('role:created', {
+            roleId: result.id,
+            name: formData.name,
+            description: formData.description,
+            permissions: formData.permissions,
+            timestamp: Date.now(),
+          })
+        } else {
+          globalEventEmitter.emit('role:updated', {
+            roleId: initialData?.id,
+            name: formData.name,
+            description: formData.description,
+            permissions: formData.permissions,
+            timestamp: Date.now(),
+          })
+        }
+
         toast.success(
           mode === 'create'
             ? 'Role created successfully'
@@ -178,25 +352,17 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
       } finally {
         setIsSubmitting(false)
       }
-    }, [formData, mode, initialData?.id, onClose, onSuccess])
-
-    // Group permissions by category
-    const permissionsByCategory = permissions.reduce((acc, perm) => {
-      const category = perm.category || 'Other'
-      if (!acc[category]) acc[category] = []
-      acc[category].push(perm)
-      return acc
-    }, {} as Record<string, Permission[]>)
+    }, [formData, mode, initialData?.id, onClose, onSuccess, session])
 
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent ref={ref} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent ref={ref} className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{title || defaultTitle}</DialogTitle>
             <DialogDescription>{description || defaultDescription}</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden space-y-4">
             {error && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex gap-2">
                 <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -204,81 +370,96 @@ export const RoleFormModal = React.forwardRef<HTMLDivElement, RoleFormModalProps
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Role Name *</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Senior Accountant"
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                disabled={isSubmitting}
-              />
+            {/* Role Name and Description */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Role Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="e.g., Senior Accountant"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe the purpose and responsibilities of this role"
+                  value={formData.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  disabled={isSubmitting}
+                  rows={2}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe the purpose and responsibilities of this role"
-                value={formData.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                disabled={isSubmitting}
-                rows={3}
-              />
-            </div>
+            {/* Permissions Section */}
+            <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between">
+                <Label>Permissions *</Label>
+                {selectedCount > 0 && (
+                  <Badge variant="secondary">{selectedCount} selected</Badge>
+                )}
+              </div>
 
-            <div className="space-y-3">
-              <Label>Permissions *</Label>
               {loadingPermissions ? (
-                <div className="flex items-center justify-center py-4">
+                <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                 </div>
               ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50">
-                  {Object.entries(permissionsByCategory).map(([category, perms]) => (
-                    <div key={category}>
+                <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+                  {/* Search Box */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search permissions..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      disabled={isSubmitting}
+                      className="pl-9 pr-8"
+                    />
+                    {searchQuery && (
                       <button
                         type="button"
-                        onClick={() => toggleCategory(category)}
-                        className="flex items-center w-full p-2 rounded hover:bg-gray-100 font-medium text-sm text-gray-700"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {expandedCategories.has(category) ? (
-                          <ChevronDown className="h-4 w-4 mr-2" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 mr-2" />
-                        )}
-                        {category}
+                        <X className="h-4 w-4" />
                       </button>
+                    )}
+                  </div>
 
-                      {expandedCategories.has(category) && (
-                        <div className="ml-4 space-y-2">
-                          {perms.map((perm) => (
-                            <div key={perm.id} className="flex items-start gap-2">
-                              <Checkbox
-                                id={perm.id}
-                                checked={formData.permissions.includes(perm.id)}
-                                onCheckedChange={() => togglePermission(perm.id)}
-                                disabled={isSubmitting}
-                              />
-                              <label
-                                htmlFor={perm.id}
-                                className="text-sm cursor-pointer flex-1 pt-0.5"
-                              >
-                                <div className="font-medium">{perm.name}</div>
-                                {perm.description && (
-                                  <div className="text-xs text-gray-500">{perm.description}</div>
-                                )}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {/* Permissions Tree */}
+                  <div className="border rounded-lg overflow-y-auto flex-1">
+                    {filteredCategories.length === 0 ? (
+                      <div className="flex items-center justify-center py-8 text-gray-500">
+                        <p className="text-sm">No permissions found</p>
+                      </div>
+                    ) : (
+                      filteredCategories.map((category) => (
+                        <PermissionCategoryGroup
+                          key={category}
+                          category={category}
+                          permissions={permissionsByCategory[category]}
+                          selectedPermissions={formData.permissions}
+                          onTogglePermission={togglePermission}
+                          isExpanded={expandedCategories.has(category)}
+                          onToggleExpanded={toggleCategory}
+                          searchQuery={searchQuery}
+                          isSubmitting={isSubmitting}
+                        />
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
+            {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
                 type="button"

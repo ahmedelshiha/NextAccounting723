@@ -115,7 +115,7 @@ export const UsersTable = memo(function UsersTable({
     (user: UserItem) => (
       <div
         key={user.id}
-        className="flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm w-full"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border rounded-lg hover:shadow-sm w-full"
         role="row"
         aria-label={`User row for ${user.name || user.email}`}
       >
@@ -149,7 +149,7 @@ export const UsersTable = memo(function UsersTable({
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center sm:justify-end gap-2 sm:gap-3 shrink-0">
           <div
             className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(user.status)}`}
             role="status"
@@ -167,7 +167,7 @@ export const UsersTable = memo(function UsersTable({
           {perms.canManageUsers && (
             <Select value={user.role} onValueChange={(val) => handleRoleChange(user.id, val as UserItem['role'])}>
               <SelectTrigger
-                className="w-28 h-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-32 sm:w-28 h-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label={`Change role for ${user.name || user.email}`}
               >
                 <SelectValue />

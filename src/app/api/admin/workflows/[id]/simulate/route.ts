@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { withAdminAuth } from '@/lib/auth-middleware'
+import { withAdminAuth, AuthenticatedRequest } from '@/lib/auth-middleware'
 import { workflowDesignerService, type Workflow } from '@/services/workflow-designer.service'
 
-export const POST = withAdminAuth(async (req: NextRequest, context: any) => {
+export const dynamic = 'force-dynamic'
+
+export const POST = withAdminAuth(async (req: AuthenticatedRequest, context: any) => {
   try {
-    const { id } = context.params
+    const { id } = context?.params || {}
     const body = await req.json()
     const { testData = {} } = body
 

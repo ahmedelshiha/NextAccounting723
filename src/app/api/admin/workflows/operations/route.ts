@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { workflowDesignerService, Workflow, WorkflowSimulation } from '@/services/workflow-designer.service'
 import { withAdminAuth } from '@/lib/auth-middleware'
 
+export const dynamic = 'force-dynamic'
+
 export const POST = withAdminAuth(async (req: NextRequest) => {
   try {
     const { action, workflow, testData } = await req.json()

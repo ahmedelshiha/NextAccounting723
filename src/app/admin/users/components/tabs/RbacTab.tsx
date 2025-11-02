@@ -2,10 +2,11 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import RolePermissionsViewer from '@/components/admin/permissions/RolePermissionsViewer'
 import UserPermissionsInspector from '@/components/admin/permissions/UserPermissionsInspector'
-import { RoleFormModal } from '@/components/admin/shared/RoleFormModal'
+import UnifiedPermissionModal, { RoleFormData } from '@/components/admin/permissions/UnifiedPermissionModal'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit3, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { globalEventEmitter } from '@/lib/event-emitter'
 
 interface Role {
   id: string
@@ -19,14 +20,34 @@ interface Role {
 export function RbacTab() {
   const [roles, setRoles] = useState<Role[]>([])
   const [loadingRoles, setLoadingRoles] = useState(true)
-  const [roleFormModal, setRoleFormModal] = useState({ isOpen: false, mode: 'create' as 'create' | 'edit', data: undefined as Partial<Role> | undefined })
+  const [roleModal, setRoleModal] = useState({
+    isOpen: false,
+    mode: 'create' as 'role-create' | 'role-edit',
+    data: undefined as Partial<RoleFormData> | undefined
+  })
 
-  // Load roles on mount
+  // Load roles on mount and listen for role changes
   useEffect(() => {
     loadRoles()
+
+    // Listen for role events
+    const unsubscribeRoleCreated = globalEventEmitter.on('role:created', () => {
+      loadRoles()
+    })
+
+    const unsubscribeRoleUpdated = globalEventEmitter.on('role:updated', () => {
+      loadRoles()
+    })
+
+    // Legacy event listener for compatibility
     const handleRefresh = () => loadRoles()
     window.addEventListener('refresh-roles', handleRefresh)
-    return () => window.removeEventListener('refresh-roles', handleRefresh)
+
+    return () => {
+      unsubscribeRoleCreated()
+      unsubscribeRoleUpdated()
+      window.removeEventListener('refresh-roles', handleRefresh)
+    }
   }, [])
 
   const loadRoles = useCallback(async () => {
@@ -44,12 +65,29 @@ export function RbacTab() {
     }
   }, [])
 
-  const openRoleForm = useCallback((role?: Role) => {
-    setRoleFormModal({ isOpen: true, mode: role ? 'edit' : 'create', data: role })
+  const openRoleModal = useCallback((role?: Role) => {
+    if (role) {
+      setRoleModal({
+        isOpen: true,
+        mode: 'role-edit',
+        data: {
+          id: role.id,
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+        }
+      })
+    } else {
+      setRoleModal({
+        isOpen: true,
+        mode: 'role-create',
+        data: { name: '', description: '', permissions: [] }
+      })
+    }
   }, [])
 
-  const closeRoleForm = useCallback(() => {
-    setRoleFormModal({ isOpen: false, mode: 'create', data: undefined })
+  const closeRoleModal = useCallback(() => {
+    setRoleModal({ isOpen: false, mode: 'role-create', data: undefined })
   }, [])
 
   const handleDeleteRole = useCallback(async (roleId: string) => {
@@ -64,6 +102,41 @@ export function RbacTab() {
     }
   }, [loadRoles])
 
+  const handleRoleModalSave = useCallback(async (formData: RoleFormData) => {
+    try {
+      const endpoint = roleModal.mode === 'role-create'
+        ? '/api/admin/roles'
+        : `/api/admin/roles/${formData.id}`
+      const method = roleModal.mode === 'role-create' ? 'POST' : 'PATCH'
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          permissions: formData.permissions,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to ${roleModal.mode === 'role-create' ? 'create' : 'update'} role`)
+      }
+
+      toast.success(
+        roleModal.mode === 'role-create'
+          ? 'Role created successfully'
+          : 'Role updated successfully'
+      )
+      closeRoleModal()
+      loadRoles()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save role')
+      throw err
+    }
+  }, [roleModal.mode, closeRoleModal, loadRoles])
+
   return (
     <div className="space-y-6 p-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -74,7 +147,7 @@ export function RbacTab() {
               <h3 className="text-lg font-semibold text-gray-900">Roles</h3>
               <p className="text-sm text-gray-500 mt-1">Create and manage roles</p>
             </div>
-            <Button onClick={() => openRoleForm()} className="gap-2">
+            <Button onClick={() => openRoleModal()} className="gap-2">
               <Plus className="w-4 h-4" />
               New Role
             </Button>
@@ -87,7 +160,7 @@ export function RbacTab() {
           ) : roles.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed rounded-lg">
               <p className="text-gray-500">No roles created yet</p>
-              <Button onClick={() => openRoleForm()} variant="ghost" className="mt-2">
+              <Button onClick={() => openRoleModal()} variant="ghost" className="mt-2">
                 Create your first role
               </Button>
             </div>
@@ -106,7 +179,7 @@ export function RbacTab() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openRoleForm(role)}>
+                      <Button variant="ghost" size="sm" onClick={() => openRoleModal(role)}>
                         <Edit3 className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDeleteRole(role.id)}>
@@ -131,18 +204,19 @@ export function RbacTab() {
         <UserPermissionsInspector />
       </div>
 
-      {/* Role Form Modal */}
-      <RoleFormModal
-        isOpen={roleFormModal.isOpen}
-        onClose={closeRoleForm}
-        mode={roleFormModal.mode}
-        initialData={roleFormModal.data}
-        onSuccess={() => {
-          closeRoleForm()
-          loadRoles()
-          window.dispatchEvent(new Event('refresh-roles'))
-        }}
-      />
+      {/* Role Management Modal */}
+      {roleModal.isOpen && (
+        <UnifiedPermissionModal
+          mode={roleModal.mode}
+          targetId={roleModal.data?.id || 'new-role'}
+          onSave={handleRoleModalSave}
+          onClose={closeRoleModal}
+          roleData={roleModal.data as RoleFormData}
+          showTemplates={true}
+          showHistory={false}
+          allowCustomPermissions={true}
+        />
+      )}
     </div>
   )
 }

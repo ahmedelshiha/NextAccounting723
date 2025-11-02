@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { withAdminAuth } from '@/lib/auth-middleware'
+import { withAdminAuth, AuthenticatedRequest } from '@/lib/auth-middleware'
 
-export const GET = withAdminAuth(async (req: NextRequest, context: any) => {
+export const dynamic = 'force-dynamic'
+
+export const GET = withAdminAuth(async (req: AuthenticatedRequest, context: any) => {
   try {
-    const { id } = context.params
+    const { id } = context?.params || {}
 
     const workflow = await prisma.workflow.findUnique({
       where: { id }
@@ -27,9 +29,9 @@ export const GET = withAdminAuth(async (req: NextRequest, context: any) => {
   }
 })
 
-export const PUT = withAdminAuth(async (req: NextRequest, context: any) => {
+export const PUT = withAdminAuth(async (req: AuthenticatedRequest, context: any) => {
   try {
-    const { id } = context.params
+    const { id } = context?.params || {}
     const body = await req.json()
     const { name, description, nodes, edges, status } = body
 
@@ -55,9 +57,9 @@ export const PUT = withAdminAuth(async (req: NextRequest, context: any) => {
   }
 })
 
-export const DELETE = withAdminAuth(async (req: NextRequest, context: any) => {
+export const DELETE = withAdminAuth(async (req: AuthenticatedRequest, context: any) => {
   try {
-    const { id } = context.params
+    const { id } = context?.params || {}
 
     await prisma.workflow.delete({
       where: { id }

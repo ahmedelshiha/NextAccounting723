@@ -407,12 +407,15 @@ export class UserManagementSettingsService {
       })
 
       // Persist to database
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } })
+      const existingMetadata = typeof tenant?.metadata === 'object' && tenant?.metadata !== null ? tenant.metadata : {}
+
       await prisma.tenant.update({
         where: { id: tenantId },
         data: {
           metadata: {
-            ...((await prisma.tenant.findUnique({ where: { id: tenantId } }))?.metadata || {}),
-            [this.SETTINGS_KEY]: updatedSettings
+            ...existingMetadata,
+            [this.SETTINGS_KEY]: updatedSettings as any
           }
         }
       })

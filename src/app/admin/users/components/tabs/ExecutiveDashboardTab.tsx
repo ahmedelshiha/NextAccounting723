@@ -1,15 +1,27 @@
 'use client'
 
-import React, { Suspense, useState } from 'react'
+import React, { Suspense, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ExecutiveDashboard } from '../ExecutiveDashboard'
 import { AnalyticsCharts } from '../AnalyticsCharts'
-import { DashboardTab } from './DashboardTab'
+import { QuickActionsBar } from '../QuickActionsBar'
+import { OperationsOverviewCards, OperationsMetrics } from '../OperationsOverviewCards'
+import { AdvancedUserFilters, UserFilters } from '../AdvancedUserFilters'
+import { UsersTable } from '../UsersTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { useDashboardMetrics, useDashboardRecommendations, useDashboardAnalytics } from '../../hooks/useDashboardMetrics'
 import { UserItem } from '../../contexts/UsersContextProvider'
+import { toast } from 'sonner'
 
 interface ExecutiveDashboardTabProps {
   users: UserItem[]
@@ -46,9 +58,99 @@ export function ExecutiveDashboardTab({
   const { data: analyticsData, isLoading: analyticsLoading } = useDashboardAnalytics()
   const [dashboardView, setDashboardView] = useState<'overview' | 'operations'>('overview')
 
+  // Operations section state (merged from DashboardTab)
+  const [filters, setFilters] = useState<UserFilters>({
+    search: '',
+    role: undefined,
+    status: undefined,
+    department: undefined,
+    dateRange: 'all'
+  })
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
+  const [bulkActionType, setBulkActionType] = useState<string>('')
+  const [bulkActionValue, setBulkActionValue] = useState<string>('')
+  const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
+
   const handleRefreshDashboard = () => {
     onRefresh?.()
   }
+
+  // Filter users based on active filters
+  const filteredUsers = users.filter((user) => {
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      const matchesSearch =
+        user.name?.toLowerCase().includes(searchLower) ||
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.id?.toLowerCase().includes(searchLower)
+      if (!matchesSearch) return false
+    }
+    if (filters.role && user.role !== filters.role) {
+      return false
+    }
+    if (filters.status) {
+      const userStatus = user.status || (user.isActive ? 'ACTIVE' : 'INACTIVE')
+      if (userStatus !== filters.status) return false
+    }
+    return true
+  })
+
+  const displayMetrics: OperationsMetrics = stats || {
+    totalUsers: users.length,
+    pendingApprovals: 0,
+    inProgressWorkflows: 0,
+    dueThisWeek: 0
+  }
+
+  const handleSelectUser = (userId: string, selected: boolean) => {
+    const newSelected = new Set(selectedUserIds)
+    if (selected) {
+      newSelected.add(userId)
+    } else {
+      newSelected.delete(userId)
+    }
+    setSelectedUserIds(newSelected)
+  }
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedUserIds(new Set(filteredUsers.map((u) => u.id)))
+    } else {
+      setSelectedUserIds(new Set())
+    }
+  }
+
+  const handleApplyBulkAction = useCallback(async () => {
+    if (!bulkActionType || !bulkActionValue || selectedUserIds.size === 0) {
+      toast.error('Please select an action and value')
+      return
+    }
+
+    setIsApplyingBulkAction(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      let actionDescription = ''
+      if (bulkActionType === 'role') {
+        actionDescription = `Changed role to ${bulkActionValue}`
+      } else if (bulkActionType === 'status') {
+        actionDescription = `Changed status to ${bulkActionValue}`
+      } else if (bulkActionType === 'department') {
+        actionDescription = `Changed department to ${bulkActionValue}`
+      }
+
+      toast.success(`Applied to ${selectedUserIds.size} users: ${actionDescription}`)
+
+      setSelectedUserIds(new Set())
+      setBulkActionType('')
+      setBulkActionValue('')
+    } catch (error) {
+      toast.error('Failed to apply bulk action')
+      console.error('Bulk action error:', error)
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }, [bulkActionType, bulkActionValue, selectedUserIds.size])
 
   return (
     <div className="flex-1 overflow-auto">
@@ -97,16 +199,156 @@ export function ExecutiveDashboardTab({
 
         {/* Operations Tab */}
         <TabsContent value="operations" className="p-4 sm:p-6 lg:p-8">
-          <DashboardTab
-            users={users}
-            stats={stats}
-            isLoading={isLoading}
-            onAddUser={onAddUser}
-            onImport={onImport}
-            onBulkOperation={onBulkOperation}
-            onExport={onExport}
-            onRefresh={onRefresh}
-          />
+          <div className="min-h-screen bg-gray-50 space-y-6">
+            {/* Quick Actions Bar */}
+            <section role="region" aria-label="Quick actions">
+              <QuickActionsBar
+                onAddUser={onAddUser}
+                onImport={onImport}
+                onBulkOperation={onBulkOperation}
+                onExport={onExport}
+                onRefresh={onRefresh}
+                isLoading={isLoading}
+              />
+            </section>
+
+            {/* Operations Overview Metrics */}
+            <section role="region" aria-label="Operations metrics" className="max-w-7xl mx-auto w-full">
+              <OperationsOverviewCards metrics={displayMetrics} isLoading={isLoading} />
+            </section>
+
+            {/* Filters Section */}
+            <section role="region" aria-label="User filters" className="max-w-7xl mx-auto w-full">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">User Directory</h2>
+              <AdvancedUserFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                onReset={() =>
+                  setFilters({
+                    search: '',
+                    role: undefined,
+                    status: undefined,
+                    department: undefined,
+                    dateRange: 'all'
+                  })
+                }
+              />
+            </section>
+
+            {/* Users Table with Bulk Actions */}
+            <section role="region" aria-label="User table and bulk actions" className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
+              <div className="mb-4 flex flex-col gap-4 flex-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {filteredUsers.length} of {users.length} users
+                    {selectedUserIds.size > 0 && (
+                      <span className="ml-2 font-semibold text-blue-600" role="status" aria-live="polite">
+                        ({selectedUserIds.size} selected)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {selectedUserIds.size > 0 && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4" role="region" aria-label="Bulk actions panel">
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="bulk-action-select" className="text-sm font-medium text-gray-700">
+                        Select an action to apply to {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''}
+                      </label>
+                      <Select value={bulkActionType || ''} onValueChange={setBulkActionType}>
+                        <SelectTrigger id="bulk-action-select" className="w-full sm:w-40" aria-label="Bulk action type">
+                          <SelectValue placeholder="Select action" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="role">Change Role</SelectItem>
+                          <SelectItem value="status">Change Status</SelectItem>
+                          <SelectItem value="department">Change Department</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {bulkActionType === 'role' && (
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="bulk-value-role" className="text-sm font-medium text-gray-700">
+                          Select new role
+                        </label>
+                        <Select value={bulkActionValue} onValueChange={setBulkActionValue}>
+                          <SelectTrigger id="bulk-value-role" className="w-full sm:w-40" aria-label="Role selection">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
+                            <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
+                            <SelectItem value="STAFF">Staff</SelectItem>
+                            <SelectItem value="CLIENT">Client</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {bulkActionType === 'status' && (
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="bulk-value-status" className="text-sm font-medium text-gray-700">
+                          Select new status
+                        </label>
+                        <Select value={bulkActionValue} onValueChange={setBulkActionValue}>
+                          <SelectTrigger id="bulk-value-status" className="w-full sm:w-40" aria-label="Status selection">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ACTIVE">Active</SelectItem>
+                            <SelectItem value="INACTIVE">Inactive</SelectItem>
+                            <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {bulkActionType === 'department' && (
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="bulk-value-department" className="text-sm font-medium text-gray-700">
+                          Select new department
+                        </label>
+                        <Select value={bulkActionValue} onValueChange={setBulkActionValue}>
+                          <SelectTrigger id="bulk-value-department" className="w-full sm:w-40" aria-label="Department selection">
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="engineering">Engineering</SelectItem>
+                            <SelectItem value="sales">Sales</SelectItem>
+                            <SelectItem value="marketing">Marketing</SelectItem>
+                            <SelectItem value="operations">Operations</SelectItem>
+                            <SelectItem value="support">Support</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleApplyBulkAction}
+                      disabled={isApplyingBulkAction || !bulkActionType || !bulkActionValue}
+                      className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
+                      aria-busy={isApplyingBulkAction}
+                    >
+                      {isApplyingBulkAction ? 'Applying...' : 'Apply'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-auto">
+                <UsersTable
+                  users={filteredUsers}
+                  isLoading={isLoading}
+                  selectedUserIds={selectedUserIds}
+                  onSelectUser={handleSelectUser}
+                  onSelectAll={handleSelectAll}
+                  onViewProfile={() => {}}
+                />
+              </div>
+            </section>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

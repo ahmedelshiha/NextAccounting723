@@ -5,6 +5,7 @@ import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 import { respond } from '@/lib/api-response'
 import prisma from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // POST /api/admin/workflows/:id/dry-run

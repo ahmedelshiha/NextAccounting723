@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
-import { bulkOperationsService } from '@/services/bulk-operations.service'
-import prisma from '@/lib/prisma'
+import { DryRunService } from '@/services/dry-run.service'
 
 /**
  * POST /api/admin/bulk-operations/preview
- * Get a preview of what a bulk operation would do (dry-run)
+ * Get a comprehensive preview of what a bulk operation would do (dry-run)
+ *
+ * Returns:
+ * - User change previews
+ * - Conflict detection
+ * - Impact analysis
+ * - Risk assessment
  */
 export const POST = withTenantContext(async (request: NextRequest) => {
   try {
@@ -20,98 +25,35 @@ export const POST = withTenantContext(async (request: NextRequest) => {
 
     if (!selectedUserIds || !operationType || !operationConfig) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: selectedUserIds, operationType, operationConfig' },
         { status: 400 }
       )
     }
 
-    // Get users for preview
-    const users = await prisma.user.findMany({
-      where: {
-        tenantId: ctx.tenantId as string,
-        id: { in: selectedUserIds }
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true
-      }
-    })
+    if (!Array.isArray(selectedUserIds) || selectedUserIds.length === 0) {
+      return NextResponse.json(
+        { error: 'selectedUserIds must be a non-empty array' },
+        { status: 400 }
+      )
+    }
 
-    // Build preview for each user
-    const preview = users.slice(0, 5).map(user => {
-      const changes: Record<string, any> = {}
+    // Run comprehensive dry-run with conflict detection and impact analysis
+    const dryRunResult = await DryRunService.runDryRun(
+      ctx.tenantId as string,
+      selectedUserIds,
+      operationType,
+      operationConfig,
+      10 // Preview limit
+    )
 
-      switch (operationType) {
-        case 'ROLE_CHANGE':
-          if (operationConfig.fromRole && operationConfig.toRole) {
-            changes.role = {
-              from: operationConfig.fromRole,
-              to: operationConfig.toRole
-            }
-          }
-          break
-
-        case 'STATUS_UPDATE':
-          if (operationConfig.toStatus) {
-            changes.status = {
-              to: operationConfig.toStatus
-            }
-          }
-          break
-
-        case 'PERMISSION_GRANT':
-          if (operationConfig.permissions) {
-            changes.permissions = {
-              added: operationConfig.permissions
-            }
-          }
-          break
-
-        case 'PERMISSION_REVOKE':
-          if (operationConfig.permissions) {
-            changes.permissions = {
-              removed: operationConfig.permissions
-            }
-          }
-          break
-
-        case 'SEND_EMAIL':
-          changes.email = {
-            template: operationConfig.emailTemplate,
-            recipient: user.email
-          }
-          break
-
-        case 'IMPORT_CSV':
-          changes.imported = {
-            fields: Object.keys(operationConfig.customData || {})
-          }
-          break
-      }
-
-      return {
-        userId: user.id,
-        userName: user.name || user.email,
-        email: user.email,
-        changes
-      }
-    })
-
-    // Estimate duration (50ms per user)
-    const estimatedDuration = Math.max(1000, users.length * 50)
-
-    return NextResponse.json({
-      affectedUserCount: users.length,
-      preview,
-      estimatedDuration,
-      timestamp: new Date().toISOString()
-    })
+    return NextResponse.json(dryRunResult)
   } catch (error) {
     console.error('POST /api/admin/bulk-operations/preview error:', error)
     return NextResponse.json(
-      { error: 'Failed to preview operation' },
+      {
+        error: 'Failed to preview operation',
+        details: error instanceof Error ? error.message : undefined
+      },
       { status: 500 }
     )
   }

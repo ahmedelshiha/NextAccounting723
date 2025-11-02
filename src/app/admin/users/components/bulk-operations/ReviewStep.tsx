@@ -14,6 +14,7 @@ interface ReviewStepProps {
   dryRunResults?: any
   onDryRun: (results: any) => void
   onNext: () => void
+  onExecuteStart?: () => void | Promise<void>
 }
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({
@@ -23,7 +24,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   operationConfig,
   dryRunResults,
   onDryRun,
-  onNext
+  onNext,
+  onExecuteStart
 }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -151,26 +153,132 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       {/* Dry-run results */}
       {dryRunResults && (
         <div className="space-y-4">
-          <h4 className="font-semibold text-sm">Preview of Changes</h4>
+          <h4 className="font-semibold text-sm">Dry-Run Analysis & Impact</h4>
 
-          <div className="bg-green-50 p-3 rounded border border-green-200">
-            <p className="text-xs text-green-700">
-              <strong>✓ Preview successful:</strong> {dryRunResults.affectedUserCount || 0} users will be affected
-            </p>
-          </div>
+          {/* Risk Level */}
+          <Card className={`p-4 border-2 ${
+            dryRunResults.riskLevel === 'critical' ? 'border-red-200 bg-red-50' :
+            dryRunResults.riskLevel === 'high' ? 'border-amber-200 bg-amber-50' :
+            dryRunResults.riskLevel === 'medium' ? 'border-yellow-200 bg-yellow-50' :
+            'border-green-200 bg-green-50'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">
+                {dryRunResults.riskLevel === 'critical' ? '🚨' :
+                 dryRunResults.riskLevel === 'high' ? '⚠️' :
+                 dryRunResults.riskLevel === 'medium' ? 'ℹ️' :
+                 '✓'}
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-sm mb-1">
+                  Risk Level: <Badge>{dryRunResults.riskLevel?.toUpperCase()}</Badge>
+                </div>
+                <p className="text-sm text-gray-700">
+                  {dryRunResults.overallRiskMessage}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Can Proceed Status */}
+          {!dryRunResults.canProceed && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertDescription className="text-red-800 text-sm">
+                <strong>🚫 Cannot Proceed:</strong> This operation has critical issues that must be resolved before execution.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Conflicts */}
+          {dryRunResults.conflicts && dryRunResults.conflicts.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Detected Issues ({dryRunResults.conflictCount}):</p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {dryRunResults.conflicts.map((conflict: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded border text-xs ${
+                      conflict.severity === 'critical' ? 'bg-red-50 border-red-200' :
+                      conflict.severity === 'high' ? 'bg-amber-50 border-amber-200' :
+                      conflict.severity === 'medium' ? 'bg-yellow-50 border-yellow-200' :
+                      'bg-blue-50 border-blue-200'
+                    }`}
+                  >
+                    <div className="font-semibold mb-1">
+                      {conflict.type.replace(/-/g, ' ').toUpperCase()}
+                    </div>
+                    <div className="text-gray-700">{conflict.message}</div>
+                    {conflict.requiresApproval && (
+                      <Badge className="mt-2 bg-orange-100 text-orange-800">Approval Required</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Impact Analysis */}
+          {dryRunResults.impactAnalysis && (
+            <Card className="p-4 bg-gray-50 border-gray-200">
+              <h5 className="font-semibold text-sm mb-3">Impact Analysis</h5>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-600">Directly Affected</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {dryRunResults.impactAnalysis.directlyAffectedCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Potentially Affected</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {dryRunResults.impactAnalysis.potentiallyAffectedCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Est. Duration</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {Math.ceil(dryRunResults.estimatedDuration / 1000)}s
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">API Calls</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {dryRunResults.impactAnalysis.estimatedNetworkCalls}
+                  </p>
+                </div>
+              </div>
+              {dryRunResults.impactAnalysis.rollbackImpact && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs font-medium mb-1">Rollback Capability:</p>
+                  <p className="text-xs text-gray-700">
+                    {dryRunResults.impactAnalysis.rollbackImpact.canRollback
+                      ? `✓ Can rollback (${Math.ceil(dryRunResults.impactAnalysis.rollbackImpact.rollbackTime / 1000)}s)`
+                      : '✗ Cannot rollback'}
+                  </p>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Sample changes */}
           {dryRunResults.preview && dryRunResults.preview.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Sample Impact (first 5 users):</p>
+              <p className="text-sm font-medium">Sample Impact (first {dryRunResults.preview.length} users):</p>
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {dryRunResults.preview.map((preview: any, idx: number) => (
                   <div
                     key={idx}
-                    className="p-3 bg-gray-50 rounded border border-gray-200 text-xs"
+                    className={`p-3 rounded border text-xs ${
+                      preview.conflicts?.length ? 'bg-red-50 border-red-200' :
+                      preview.riskLevel === 'high' ? 'bg-amber-50 border-amber-200' :
+                      'bg-gray-50 border-gray-200'
+                    }`}
                   >
-                    <div className="font-medium text-gray-900">
-                      {preview.userName}
+                    <div className="font-medium text-gray-900 flex justify-between items-start">
+                      <span>{preview.userName}</span>
+                      {preview.conflicts?.length > 0 && (
+                        <Badge className="bg-red-100 text-red-800">⚠️ Issues</Badge>
+                      )}
                     </div>
                     <div className="text-gray-600 mt-1">
                       {Object.entries(preview.changes).map(([key, value]: any) => (
@@ -187,19 +295,6 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               </div>
             </div>
           )}
-
-          {dryRunResults.warnings && dryRunResults.warnings.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-amber-700">Warnings:</p>
-              <ul className="list-disc list-inside space-y-1">
-                {dryRunResults.warnings.map((warning: string, idx: number) => (
-                  <li key={idx} className="text-xs text-amber-600">
-                    {warning}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
 
@@ -213,7 +308,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       {/* Button */}
       <div className="flex justify-end gap-2">
         <Button
-          onClick={onNext}
+          onClick={async () => {
+            if (onExecuteStart) {
+              await onExecuteStart()
+            }
+            onNext()
+          }}
           disabled={!dryRunResults}
           className="bg-blue-600 hover:bg-blue-700"
         >

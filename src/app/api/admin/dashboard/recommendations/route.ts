@@ -3,6 +3,7 @@ import { recommendationEngine } from '@/services/recommendation-engine.service'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 600 // Cache for 10 minutes
 
 export const GET = withTenantContext(async (req: NextRequest) => {
