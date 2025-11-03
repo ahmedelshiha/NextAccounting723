@@ -92,7 +92,7 @@ export default function CurrencyManager() {
   }
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
+    <div className="p-4 bg-card rounded-lg shadow">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Table (takes two-thirds) */}
         <div className="lg:col-span-2">
@@ -113,24 +113,24 @@ export default function CurrencyManager() {
           {message && <div className="mb-4 text-sm text-red-600">{message}</div>}
 
           <div className="overflow-auto rounded border">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-background">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Code</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Name</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Symbol</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Decimals</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Last Rate</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Active</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Default</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Code</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Symbol</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Decimals</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Last Rate</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Active</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Default</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-card divide-y divide-border">
                 {currencies.map((c) => (
-                  <tr key={c.code} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{c.code}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{c.name}</td>
+                  <tr key={c.code} className="hover:bg-background">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">{c.code}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{c.name}</td>
                     <td className="px-4 py-3 text-sm">
                       <input
                         className="w-24 border rounded px-2 py-1 text-sm"
@@ -149,7 +149,7 @@ export default function CurrencyManager() {
                     <td className="px-4 py-3 text-sm text-gray-600">{c.lastRate != null ? c.lastRate.toFixed(4) : '-'}</td>
                     <td className="px-4 py-3 text-sm">
                       <button
-                        className={`inline-flex items-center gap-2 px-2 py-1 rounded ${c.active ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}`}
+                        className={`inline-flex items-center gap-2 px-2 py-1 rounded ${c.active ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground'}`}
                         onClick={() => { saveToggleActive(c.code, !c.active); setCurrencies(prev => prev.map(x => x.code === c.code ? { ...x, active: !x.active } : x)) }}
                         aria-pressed={c.active}
                         aria-label={c.active ? 'Deactivate' : 'Activate'}
@@ -183,7 +183,7 @@ export default function CurrencyManager() {
 
         {/* Right: Actions & Info (one-third) */}
         <aside className="lg:col-span-1">
-          <div className="p-4 border rounded mb-4">
+          <div className="p-4 border border-border rounded mb-4">
             <h4 className="font-medium mb-2">Actions</h4>
             <div className="flex flex-col gap-2">
               <button className="btn w-full flex items-center justify-center gap-2" onClick={refreshRates} disabled={loading}>
@@ -195,10 +195,10 @@ export default function CurrencyManager() {
             </div>
           </div>
 
-          <div className="p-4 border rounded">
+          <div className="p-4 border border-border rounded">
             <h4 className="font-medium mb-2">Legend</h4>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li className="flex items-center gap-2"><Save className="h-4 w-4 text-gray-500" /> Save changes</li>
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-center gap-2"><Save className="h-4 w-4 text-muted-foreground" /> Save changes</li>
               <li className="flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" /> Default currency</li>
               <li className="flex items-center gap-2"><ToggleRight className="h-4 w-4 text-green-500" /> Active / Inactive</li>
             </ul>

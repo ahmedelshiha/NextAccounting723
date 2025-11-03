@@ -81,7 +81,7 @@ const RealtimeMetrics: React.FC<RealtimeMetricsProps> = ({ metrics }) => {
       case 'error':
         return 'bg-red-100 text-red-800 border-red-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-muted text-gray-800 border-gray-200'
     }
   }
 
@@ -115,16 +115,16 @@ const RealtimeMetrics: React.FC<RealtimeMetricsProps> = ({ metrics }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-card rounded-lg border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-gray-900">Live Metrics</span>
+            <span className="text-sm font-medium text-foreground">Live Metrics</span>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2 text-xs text-gray-500">
+        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
           <Wifi className="w-3 h-3" />
           <span>Real-time</span>
         </div>
@@ -134,9 +134,9 @@ const RealtimeMetrics: React.FC<RealtimeMetricsProps> = ({ metrics }) => {
         {displayMetrics.map((metric) => (
           <div key={metric.id} className="relative">
             {/* Metric Card */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+            <div className="bg-background rounded-lg p-4 border border-border">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-600">
+                <span className="text-xs font-medium text-muted-foreground">
                   {metric.name}
                 </span>
                 
@@ -148,18 +148,18 @@ const RealtimeMetrics: React.FC<RealtimeMetricsProps> = ({ metrics }) => {
               
               {/* Value */}
               <div className="flex items-baseline space-x-1">
-                <span className="text-lg font-bold text-gray-900">
+                <span className="text-lg font-bold text-foreground">
                   {formatValue(metric.value, metric.unit)}
                 </span>
                 
                 {/* Freshness indicator */}
                 <div className={`w-1.5 h-1.5 rounded-full ${
-                  isMetricRecent(metric.lastUpdated) ? 'bg-green-400' : 'bg-gray-400'
+                  isMetricRecent(metric.lastUpdated) ? 'bg-green-400' : 'bg-muted'
                 }`} />
               </div>
               
               {/* Last updated */}
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {isMetricRecent(metric.lastUpdated) ? 'Live' : `${Math.round((Date.now() - metric.lastUpdated) / 1000)}s ago`}
               </div>
             </div>
@@ -173,11 +173,11 @@ const RealtimeMetrics: React.FC<RealtimeMetricsProps> = ({ metrics }) => {
       </div>
 
       {/* Summary Status */}
-      <div className="mt-4 pt-4 border-t border-gray-100">
+      <div className="mt-4 pt-4 border-t border-border">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-2">
             <TrendingUp className="w-4 h-4 text-green-500" />
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               System performance is <span className="font-medium text-green-600">optimal</span>
             </span>
           </div>

@@ -1,6 +1,6 @@
 // Central registry of settings categories used by the admin sidebar and settings pages.
 
-import { Building2, Cog, Users, ClipboardList, ShieldCheck, CreditCard, LineChart, MessageSquare, PlugZap, ServerCog } from 'lucide-react'
+import { Building2, Cog, Users, ClipboardList, ShieldCheck, CreditCard, LineChart, MessageSquare, PlugZap, ServerCog, Globe, BarChart3 } from 'lucide-react'
 import type { SettingsCategory } from './types'
 import { PERMISSIONS } from '@/lib/permissions'
 
@@ -103,12 +103,36 @@ export const SETTINGS_REGISTRY: SettingsCategory[] = [
     permission: PERMISSIONS.INTEGRATION_HUB_VIEW,
   },
   {
+    key: 'cronTelemetry',
+    label: 'Cron Telemetry',
+    route: '/admin/settings/cron-telemetry',
+    icon: PlugZap,
+    tabs: [],
+    permission: PERMISSIONS.ANALYTICS_VIEW,
+  },
+  {
     key: 'systemAdministration',
     label: 'System Administration',
     route: '/admin/settings/system',
     icon: ServerCog,
     tabs: [],
     permission: PERMISSIONS.SYSTEM_ADMIN_SETTINGS_VIEW,
+  },
+  {
+    key: 'localization',
+    label: 'Localization & Languages',
+    route: '/admin/settings/localization',
+    icon: Globe,
+    tabs: [],
+    permission: PERMISSIONS.LANGUAGES_VIEW,
+  },
+  {
+    key: 'userManagement',
+    label: 'User Management Settings',
+    route: '/admin/settings/user-management',
+    icon: Users,
+    tabs: [],
+    permission: PERMISSIONS.USERS_MANAGE,
   }
 ]
 

@@ -25,8 +25,13 @@ export type SettingsCategoryKey =
   | 'communication'
   | 'securityCompliance'
   | 'integrationHub'
+  | 'cronTelemetry'
   | 'serviceRequests'
   | 'systemAdministration'
+  | 'localization'
+  | 'languages'
+  | 'translationsManagement'
+  | 'userManagement'
 
 // Each tab exposes a typed get/put contract. Concrete schemas (Zod) are provided by category modules.
 export interface SettingsTab<Schema = any> {

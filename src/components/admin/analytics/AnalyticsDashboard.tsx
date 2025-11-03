@@ -134,10 +134,10 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Unable to Load Analytics Data
           </h3>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Please check your connection and try again.
           </p>
           <button
@@ -170,7 +170,7 @@ const AnalyticsDashboard: React.FC = () => {
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
                 selectedTimeRange === range
                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
               {range.toUpperCase()}
@@ -223,10 +223,10 @@ const AnalyticsDashboard: React.FC = () => {
 
       {/* User Behavior Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">User Behavior</h3>
-            <Eye className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-foreground">User Behavior</h3>
+            <Eye className="w-5 h-5 text-muted-foreground" />
           </div>
           
           <UserBehaviorChart
@@ -235,9 +235,9 @@ const AnalyticsDashboard: React.FC = () => {
           />
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Most Used Features</h3>
+            <h3 className="text-lg font-semibold text-foreground">Most Used Features</h3>
             <MousePointer className="w-5 h-5 text-gray-400" />
           </div>
           
@@ -274,9 +274,9 @@ const AnalyticsDashboard: React.FC = () => {
       />
 
       {/* Performance Charts */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Performance Trends</h3>
+          <h3 className="text-lg font-semibold text-foreground">Performance Trends</h3>
           <div className="flex items-center space-x-2">
             <TrendingUp className="w-5 h-5 text-green-500" />
             <span className="text-sm text-green-600">Improving</span>

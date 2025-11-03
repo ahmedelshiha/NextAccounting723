@@ -57,7 +57,7 @@ const departmentOptions = [
   { value: 'consulting', label: 'Consulting', color: 'bg-purple-100 text-purple-800' },
   { value: 'bookkeeping', label: 'Bookkeeping', color: 'bg-orange-100 text-orange-800' },
   { value: 'advisory', label: 'Advisory', color: 'bg-indigo-100 text-indigo-800' },
-  { value: 'admin', label: 'Administration', color: 'bg-gray-100 text-gray-800' }
+  { value: 'admin', label: 'Administration', color: 'bg-muted text-muted-foreground' }
 ] as const
 
 function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetails }: {
@@ -69,22 +69,22 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
 }) {
   const getDepartmentColor = (dept: TeamMember['department']) => {
     const option = departmentOptions.find((opt) => opt.value === dept)
-    return option?.color || 'bg-gray-100 text-gray-800'
+    return option?.color || 'bg-muted text-muted-foreground'
   }
   const getStatusColor = (status: TeamMember['status']) => {
     switch (status) {
       case 'active': return 'text-green-600 bg-green-50'
       case 'busy': return 'text-yellow-600 bg-yellow-50'
       case 'on_leave': return 'text-blue-600 bg-blue-50'
-      case 'inactive': return 'text-gray-600 bg-gray-50'
-      default: return 'text-gray-600 bg-gray-50'
+      case 'inactive': return 'text-muted-foreground bg-gray-50'
+      default: return 'text-muted-foreground bg-gray-50'
     }
   }
   const s = member.stats || defaultStats
   const utilizationColor = s.utilizationRate >= 85 ? 'text-green-600' : s.utilizationRate >= 70 ? 'text-yellow-600' : 'text-red-600'
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all">
+    <div className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -93,8 +93,8 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
             </span>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{member.name}</h3>
-            <p className="text-sm text-gray-600">{member.title}</p>
+            <h3 className="font-semibold text-foreground">{member.name}</h3>
+            <p className="text-sm text-muted-foreground">{member.title}</p>
             <div className="flex items-center gap-2 mt-1">
               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDepartmentColor(member.department)}`}>
                 {departmentOptions.find((d) => d.value === member.department)?.label}
@@ -106,17 +106,17 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
           </div>
         </div>
         <div className="flex items-center space-x-1">
-          <button onClick={() => onViewDetails(member)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100" aria-label="View details">
+          <button onClick={() => onViewDetails(member)} className="p-2 text-gray-400 hover:text-muted-foreground rounded-lg hover:bg-muted" aria-label="View details">
             <Eye className="h-4 w-4" />
           </button>
-          <button onClick={() => onEdit(member)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100" aria-label="Edit">
+          <button onClick={() => onEdit(member)} className="p-2 text-gray-400 hover:text-muted-foreground rounded-lg hover:bg-muted" aria-label="Edit">
             <Edit className="h-4 w-4" />
           </button>
           <div className="relative group">
-            <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100" aria-haspopup>
+            <button className="p-2 text-gray-400 hover:text-muted-foreground rounded-lg hover:bg-muted" aria-haspopup>
               <MoreHorizontal className="h-4 w-4" />
             </button>
-            <div className="absolute right-0 top-8 w-56 bg-white rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+            <div className="absolute right-0 top-8 w-56 bg-card rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
               <button onClick={() => onToggleStatus(member)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                 {member.status === 'active' ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                 {member.status === 'active' ? 'Mark Inactive' : 'Mark Active'}
@@ -148,11 +148,11 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <Mail className="h-4 w-4 mr-2" />
           {member.email}
         </div>
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <Phone className="h-4 w-4 mr-2" />
           {member.phone || 'Not provided'}
         </div>
@@ -160,7 +160,7 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
 
       <div className="space-y-3 mb-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Utilization Rate:</span>
+          <span className="text-muted-foreground">Utilization Rate:</span>
           <span className={`font-medium ${utilizationColor}`}>{s.utilizationRate}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -168,35 +168,35 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center text-xs text-gray-600 mb-4">
+      <div className="grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground mb-4">
         <div>
-          <div className="font-medium text-gray-900">{s.totalBookings}</div>
+          <div className="font-medium text-foreground">{s.totalBookings}</div>
           <div>Bookings</div>
         </div>
         <div>
-          <div className="font-medium text-gray-900 flex items-center justify-center gap-1">
+          <div className="font-medium text-foreground flex items-center justify-center gap-1">
             {s.averageRating}
             <Star className="h-3 w-3 text-yellow-500" />
           </div>
           <div>Rating</div>
         </div>
         <div>
-          <div className="font-medium text-gray-900">${(s.revenueGenerated / 1000).toFixed(0)}k</div>
+          <div className="font-medium text-foreground">${(s.revenueGenerated / 1000).toFixed(0)}k</div>
           <div>Revenue</div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center text-xs text-gray-600">
+        <div className="flex items-center text-xs text-muted-foreground">
           <Clock className="h-3 w-3 mr-1" />
           {(member.workingHours || defaultWorkingHours).start} - {(member.workingHours || defaultWorkingHours).end}
         </div>
         <div className="flex flex-wrap gap-1">
           {(member.specialties || []).slice(0, 2).map((sp, idx) => (
-            <span key={idx} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{sp}</span>
+            <span key={idx} className="inline-block bg-muted text-muted-foreground px-2 py-1 rounded text-xs">{sp}</span>
           ))}
           {(member.specialties || []).length > 2 && (
-            <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">+{(member.specialties || []).length - 2} more</span>
+            <span className="inline-block bg-muted text-muted-foreground px-2 py-1 rounded text-xs">+{(member.specialties || []).length - 2} more</span>
           )}
         </div>
       </div>
@@ -236,20 +236,20 @@ function TeamMemberForm({ member, onSave, onCancel }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">{member ? 'Edit Team Member' : 'Add Team Member'}</h2>
-            <button onClick={onCancel} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Close"><X className="h-5 w-5" /></button>
+            <h2 className="text-xl font-semibold text-foreground">{member ? 'Edit Team Member' : 'Add Team Member'}</h2>
+            <button onClick={onCancel} className="p-2 hover:bg-muted rounded-lg" aria-label="Close"><X className="h-5 w-5" /></button>
           </div>
-          <div className="flex space-x-1 mt-4 bg-gray-100 rounded-lg p-1">
+          <div className="flex space-x-1 mt-4 bg-muted rounded-lg p-1">
             {([
               { key: 'basic', label: 'Basic Info' },
               { key: 'professional', label: 'Professional' },
               { key: 'schedule', label: 'Schedule' },
               { key: 'permissions', label: 'Permissions' }
             ] as const).map((tab) => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`px-3 py-2 text-sm rounded-md transition-colors ${activeTab === tab.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>{tab.label}</button>
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`px-3 py-2 text-sm rounded-md transition-colors ${activeTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>{tab.label}</button>
             ))}
           </div>
         </div>
@@ -260,19 +260,19 @@ function TeamMemberForm({ member, onSave, onCancel }: {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Full Name *</label>
                     <input required type="text" value={formData.name || ''} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Email Address *</label>
                     <input required type="email" value={formData.email || ''} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Phone Number</label>
                     <input type="tel" value={formData.phone || ''} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Role *</label>
                     <select value={formData.role || 'TEAM_MEMBER'} onChange={(e) => setFormData((p) => ({ ...p, role: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                       <option value="TEAM_MEMBER">Team Member</option>
                       <option value="TEAM_LEAD">Team Lead</option>
@@ -280,18 +280,18 @@ function TeamMemberForm({ member, onSave, onCancel }: {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Department *</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Department *</label>
                     <select value={formData.department || 'tax'} onChange={(e) => setFormData((p) => ({ ...p, department: e.target.value as TeamMember['department'] }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                       {departmentOptions.map((d) => (<option key={d.value} value={d.value}>{d.label}</option>))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Job Title *</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Job Title *</label>
                     <input required type="text" value={formData.title || ''} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Senior Tax Advisor" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Notes</label>
                   <textarea value={formData.notes || ''} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Additional notes about this team member..." />
                 </div>
               </div>
@@ -301,32 +301,32 @@ function TeamMemberForm({ member, onSave, onCancel }: {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Years of Experience</label>
                     <input type="number" min={0} max={50} value={formData.experienceYears || 0} onChange={(e) => setFormData((p) => ({ ...p, experienceYears: parseInt(e.target.value) || 0 }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Hourly Rate ($)</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Hourly Rate ($)</label>
                     <input type="number" min={0} step={0.01} value={formData.hourlyRate || ''} onChange={(e) => setFormData((p) => ({ ...p, hourlyRate: parseFloat(e.target.value) || undefined }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Specialties</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Specialties</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
                     {specialtiesList.map((s) => (
                       <label key={s} className="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" checked={(formData.specialties || []).includes(s)} onChange={() => toggleSpecialty(s)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                        <span className="text-sm text-gray-700">{s}</span>
+                        <span className="text-sm text-muted-foreground">{s}</span>
                       </label>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Certifications</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-border rounded-lg p-3">
                     {certificationsList.map((c) => (
                       <label key={c} className="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" checked={(formData.certifications || []).includes(c)} onChange={() => toggleCertification(c)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                        <span className="text-sm text-gray-700">{c}</span>
+                        <span className="text-sm text-muted-foreground">{c}</span>
                       </label>
                     ))}
                   </div>
@@ -338,15 +338,15 @@ function TeamMemberForm({ member, onSave, onCancel }: {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Start Time</label>
                     <input type="time" value={formData.workingHours?.start || '09:00'} onChange={(e) => setFormData((p) => ({ ...p, workingHours: { ...(p.workingHours as TeamMember['workingHours']), start: e.target.value } }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">End Time</label>
                     <input type="time" value={formData.workingHours?.end || '17:00'} onChange={(e) => setFormData((p) => ({ ...p, workingHours: { ...(p.workingHours as TeamMember['workingHours']), end: e.target.value } }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Timezone</label>
                     <select value={formData.workingHours?.timezone || 'Africa/Cairo'} onChange={(e) => setFormData((p) => ({ ...p, workingHours: { ...(p.workingHours as TeamMember['workingHours']), timezone: e.target.value } }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                       <option value="Africa/Cairo">Cairo (GMT+2)</option>
                       <option value="Europe/London">London (GMT+0)</option>
@@ -356,12 +356,12 @@ function TeamMemberForm({ member, onSave, onCancel }: {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Working Days</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Working Days</label>
                   <div className="flex flex-wrap gap-2">
                     {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day) => (
                       <label key={day} className="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" checked={(formData.workingHours?.days || []).includes(day)} onChange={() => toggleWorkingDay(day)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                        <span className="text-sm text-gray-700">{day}</span>
+                        <span className="text-sm text-muted-foreground">{day}</span>
                       </label>
                     ))}
                   </div>
@@ -374,21 +374,21 @@ function TeamMemberForm({ member, onSave, onCancel }: {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Manage Bookings</h3>
-                      <p className="text-xs text-gray-600">Can create, edit, and manage client bookings</p>
+                      <h3 className="text-sm font-medium text-foreground">Manage Bookings</h3>
+                      <p className="text-xs text-muted-foreground">Can create, edit, and manage client bookings</p>
                     </div>
                     <input type="checkbox" checked={!!formData.canManageBookings} onChange={(e) => setFormData((p) => ({ ...p, canManageBookings: e.target.checked }))} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">View All Clients</h3>
-                      <p className="text-xs text-gray-600">Can access and view information for all clients</p>
+                      <h3 className="text-sm font-medium text-foreground">View All Clients</h3>
+                      <p className="text-xs text-muted-foreground">Can access and view information for all clients</p>
                     </div>
                     <input type="checkbox" checked={!!formData.canViewAllClients} onChange={(e) => setFormData((p) => ({ ...p, canViewAllClients: e.target.checked }))} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Notification Preferences</h3>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Notification Preferences</h3>
                   <div className="space-y-3">
                     {([
                       { key: 'email', label: 'Email Notifications', desc: 'Booking updates, reminders, and alerts' },
@@ -397,7 +397,7 @@ function TeamMemberForm({ member, onSave, onCancel }: {
                     ] as const).map((opt) => (
                       <div key={opt.key} className="flex items-center justify-between">
                         <div>
-                          <span className="text-sm text-gray-700">{opt.label}</span>
+                          <span className="text-sm text-muted-foreground">{opt.label}</span>
                           <p className="text-xs text-gray-500">{opt.desc}</p>
                         </div>
                         <input type="checkbox" checked={Boolean(formData.notificationSettings?.[opt.key])} onChange={(e) => setFormData((p) => ({ ...p, notificationSettings: { ...(p.notificationSettings || { email: true, sms: false, inApp: true }), [opt.key]: e.target.checked } }))} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -408,8 +408,8 @@ function TeamMemberForm({ member, onSave, onCancel }: {
               </div>
             )}
           </div>
-          <div className="border-t border-gray-200 p-6 bg-gray-50 flex justify-end space-x-3">
-            <button type="button" onClick={onCancel} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
+          <div className="border-t border-border p-6 bg-gray-50 flex justify-end space-x-3">
+            <button type="button" onClick={onCancel} className="px-4 py-2 text-muted-foreground border border-gray-300 rounded-lg hover:bg-muted transition-colors">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"><Save className="h-4 w-4" />{member ? 'Update Member' : 'Add Member'}</button>
           </div>
         </form>
@@ -424,59 +424,59 @@ function TeamMemberDetails({ member, onClose, onEdit }: { member: TeamMember | n
   const wh = member.workingHours || defaultWorkingHours
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-bold text-xl">{member.name.split(' ').map((n) => n[0]).join('')}</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">{member.name}</h2>
-                <p className="text-gray-600">{member.title}</p>
+                <h2 className="text-xl font-semibold text-foreground">{member.name}</h2>
+                <p className="text-muted-foreground">{member.title}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${member.department === 'tax' ? 'bg-green-100 text-green-800' : member.department === 'audit' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{member.department}</span>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${member.status === 'active' ? 'text-green-600 bg-green-50' : member.status === 'busy' ? 'text-yellow-600 bg-yellow-50' : member.status === 'on_leave' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 bg-gray-50'}`}>{member.status.replace('_',' ')}</span>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${member.department === 'tax' ? 'bg-green-100 text-green-800' : member.department === 'audit' ? 'bg-blue-100 text-blue-800' : 'bg-muted text-muted-foreground'}`}>{member.department}</span>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${member.status === 'active' ? 'text-green-600 bg-green-50' : member.status === 'busy' ? 'text-yellow-600 bg-yellow-50' : member.status === 'on_leave' ? 'text-blue-600 bg-blue-50' : 'text-muted-foreground bg-gray-50'}`}>{member.status.replace('_',' ')}</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <button onClick={() => onEdit(member)} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"><Edit className="h-4 w-4" />Edit</button>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Close"><X className="h-5 w-5" /></button>
+              <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg" aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
           </div>
         </div>
         <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
           <div className="p-6 space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Contact Information</h3>
+              <h3 className="text-lg font-medium text-foreground mb-3">Contact Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3"><Mail className="h-5 w-5 text-gray-400" /><div><div className="text-sm text-gray-600">Email</div><div className="font-medium">{member.email}</div></div></div>
-                <div className="flex items-center space-x-3"><Phone className="h-5 w-5 text-gray-400" /><div><div className="text-sm text-gray-600">Phone</div><div className="font-medium">{member.phone || 'Not provided'}</div></div></div>
+                <div className="flex items-center space-x-3"><Mail className="h-5 w-5 text-gray-400" /><div><div className="text-sm text-muted-foreground">Email</div><div className="font-medium">{member.email}</div></div></div>
+                <div className="flex items-center space-x-3"><Phone className="h-5 w-5 text-gray-400" /><div><div className="text-sm text-muted-foreground">Phone</div><div className="font-medium">{member.phone || 'Not provided'}</div></div></div>
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Performance Metrics</h3>
+              <h3 className="text-lg font-medium text-foreground mb-3">Performance Metrics</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="text-center"><div className="text-2xl font-bold text-gray-900">{s.totalBookings}</div><div className="text-sm text-gray-600">Total Bookings</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-green-600">{s.completedBookings}</div><div className="text-sm text-gray-600">Completed</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-yellow-600 flex items-center justify-center gap-1">{s.averageRating}<Star className="h-5 w-5" /></div><div className="text-sm text-gray-600">Avg Rating</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-blue-600">${(s.revenueGenerated / 1000).toFixed(0)}k</div><div className="text-sm text-gray-600">Revenue</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-foreground">{s.totalBookings}</div><div className="text-sm text-muted-foreground">Total Bookings</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-green-600">{s.completedBookings}</div><div className="text-sm text-muted-foreground">Completed</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-yellow-600 flex items-center justify-center gap-1">{s.averageRating}<Star className="h-5 w-5" /></div><div className="text-sm text-muted-foreground">Avg Rating</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-blue-600">${(s.revenueGenerated / 1000).toFixed(0)}k</div><div className="text-sm text-muted-foreground">Revenue</div></div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Utilization Rate</span>
+                  <span className="text-sm font-medium text-muted-foreground">Utilization Rate</span>
                   <span className={`text-sm font-bold ${s.utilizationRate >= 85 ? 'text-green-600' : s.utilizationRate >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>{s.utilizationRate}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3"><div className={`${s.utilizationRate >= 85 ? 'bg-green-500' : s.utilizationRate >= 70 ? 'bg-yellow-500' : 'bg-red-500'} h-3 rounded-full transition-all`} style={{ width: `${s.utilizationRate}%` }} /></div>
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Schedule & Availability</h3>
+              <h3 className="text-lg font-medium text-foreground mb-3">Schedule & Availability</h3>
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center space-x-3"><Clock className="h-5 w-5 text-gray-400" /><div><div className="text-sm text-gray-600">Working Hours</div><div className="font-medium">{wh.start} - {wh.end} ({wh.timezone})</div></div></div>
+                <div className="flex items-center space-x-3"><Clock className="h-5 w-5 text-gray-400" /><div><div className="text-sm text-muted-foreground">Working Hours</div><div className="font-medium">{wh.start} - {wh.end} ({wh.timezone})</div></div></div>
                 <div>
-                  <div className="text-sm text-gray-600 mb-2">Working Days</div>
+                  <div className="text-sm text-muted-foreground mb-2">Working Days</div>
                   <div className="flex flex-wrap gap-2">
                     {wh.days.map((day, idx) => (<span key={idx} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">{day}</span>))}
                   </div>
@@ -505,13 +505,13 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
   useEffect(() => {
     const loadMembers = async () => {
       try {
-        // Load core team members
-        const res = await fetch('/api/admin/team-members', { cache: 'no-store' })
-        const data = await res.json().catch(() => ({}))
-        const members = Array.isArray(data.teamMembers) ? data.teamMembers : []
+        // Load core team members via service
+        const { TeamMemberService } = await import('@/services/team-member.service')
+        const svc = new TeamMemberService()
+        const members = await svc.list()
 
         // Load availability metrics (availabilityPercentage per member)
-        let availabilityById: Record<string, number> = {}
+        const availabilityById: Record<string, number> = {}
         try {
           const availRes = await fetch('/api/admin/team-management/availability', { cache: 'no-store' })
           const availJson = await availRes.json().catch(() => ({} as any))
@@ -585,17 +585,15 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
   const handleSave = async (data: Partial<TeamMember>) => {
     setLoading(true)
     try {
+      const { TeamMemberService } = await import('@/services/team-member.service')
+      const svc = new TeamMemberService()
       if (editingMember) {
-        const res = await fetch(`/api/admin/team-members/${editingMember.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-        if (!res.ok) throw new Error('Failed to update')
-        const json = await res.json()
-        const updated = json.teamMember as TeamMember
+        const updated = await svc.update(editingMember.id, data as any)
+        if (!updated) throw new Error('Failed to update')
         setTeamMembers((prev) => prev.map((m) => (m.id === editingMember.id ? updated : m)))
       } else {
-        const res = await fetch('/api/admin/team-members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-        if (!res.ok) throw new Error('Failed to create')
-        const json = await res.json()
-        const created = json.teamMember as TeamMember
+        const created = await svc.create(data as any)
+        if (!created) throw new Error('Failed to create')
         setTeamMembers((prev) => [...prev, created])
       }
       setShowForm(false)
@@ -611,8 +609,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
     if (!confirm('Are you sure you want to remove this team member?')) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/team-members/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      const { TeamMemberService } = await import('@/services/team-member.service')
+      const svc = new TeamMemberService()
+      const ok = await svc.remove(id)
+      if (!ok) throw new Error('Failed to delete')
       setTeamMembers((prev) => prev.filter((m) => m.id !== id))
     } catch {
       alert('Failed to remove team member')
@@ -623,8 +623,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
 
   const handleToggleStatus = async (member: TeamMember) => {
     const newStatus = member.status === 'active' ? 'inactive' : 'active'
-    const res = await fetch(`/api/admin/team-members/${member.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, isAvailable: newStatus === 'active' }) })
-    if (res.ok) {
+    const { TeamMemberService } = await import('@/services/team-member.service')
+    const svc = new TeamMemberService()
+    const updated = await svc.toggleStatus(member.id, newStatus)
+    if (updated) {
       setTeamMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: newStatus, isAvailable: newStatus === 'active' } : m)))
     }
   }
@@ -642,8 +644,8 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
-            <p className="text-gray-600">Manage team members and their assignments</p>
+            <h1 className="text-2xl font-bold text-foreground">Team Management</h1>
+            <p className="text-muted-foreground">Manage team members and their assignments</p>
           </div>
           <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
@@ -653,14 +655,14 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Total Members</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></div><Users className="h-8 w-8 text-blue-500" /></div></div>
-        <div className="bg-white p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Active</p><p className="text-2xl font-bold text-green-600">{stats.active}</p></div><CheckCircle className="h-8 w-8 text-green-500" /></div></div>
-        <div className="bg-white p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Busy</p><p className="text-2xl font-bold text-yellow-600">{stats.busy}</p></div><Clock className="h-8 w-8 text-yellow-500" /></div></div>
-        <div className="bg-white p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Avg Utilization</p><p className="text-2xl font-bold text-purple-600">{stats.avgUtilization}%</p></div><Calendar className="h-8 w-8 text-purple-500" /></div></div>
-        <div className="bg-white p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Total Revenue</p><p className="text-2xl font-bold text-green-600">${(stats.totalRevenue / 1000).toFixed(0)}k</p></div><Star className="h-8 w-8 text-green-500" /></div></div>
+        <div className="bg-card p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total Members</p><p className="text-2xl font-bold text-foreground">{stats.total}</p></div><Users className="h-8 w-8 text-blue-500" /></div></div>
+        <div className="bg-card p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Active</p><p className="text-2xl font-bold text-green-600">{stats.active}</p></div><CheckCircle className="h-8 w-8 text-green-500" /></div></div>
+        <div className="bg-card p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Busy</p><p className="text-2xl font-bold text-yellow-600">{stats.busy}</p></div><Clock className="h-8 w-8 text-yellow-500" /></div></div>
+        <div className="bg-card p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Avg Utilization</p><p className="text-2xl font-bold text-purple-600">{stats.avgUtilization}%</p></div><Calendar className="h-8 w-8 text-purple-500" /></div></div>
+        <div className="bg-card p-4 rounded-lg border"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-green-600">${(stats.totalRevenue / 1000).toFixed(0)}k</p></div><Star className="h-8 w-8 text-green-500" /></div></div>
       </div>
 
-      <div className="bg-white p-4 rounded-lg border">
+      <div className="bg-card p-4 rounded-lg border">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -695,8 +697,8 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
       {filteredMembers.length === 0 && (
         <div className="text-center py-12">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No team members found</h3>
-          <p className="text-gray-600 mb-4">{searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? 'Try adjusting your search or filters' : 'Get started by adding your first team member'}</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">No team members found</h3>
+          <p className="text-muted-foreground mb-4">{searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? 'Try adjusting your search or filters' : 'Get started by adding your first team member'}</p>
           {!searchTerm && statusFilter === 'all' && departmentFilter === 'all' && (
             <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Add First Team Member</button>
           )}
@@ -712,7 +714,7 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
       )}
 
       {loading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-6 flex items-center space-x-4"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><span className="text-gray-900">Processing...</span></div></div>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-card rounded-lg p-6 flex items-center space-x-4"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><span className="text-foreground">Processing...</span></div></div>
       )}
     </div>
   )

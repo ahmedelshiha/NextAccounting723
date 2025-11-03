@@ -167,7 +167,28 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Fetch tenant memberships for the user to populate available tenants
-        const tenantMemberships = await prisma.tenantMembership.findMany({ where: { userId: user.id }, include: { tenant: true } }).catch(() => [])
+        let tenantMemberships = await prisma.tenantMembership.findMany({ where: { userId: user.id }, include: { tenant: true } }).catch(() => [])
+
+        // If this is a SUPER_ADMIN and no tenant membership exists, create one using the user's tenantId (or resolved tenantId)
+        try {
+          const roleNormalized = String(user.role || '').toUpperCase()
+          if (roleNormalized === 'SUPER_ADMIN' && (!tenantMemberships || tenantMemberships.length === 0)) {
+            const membershipTenantId = (user as any).tenantId || tenantId
+            if (membershipTenantId) {
+              await prisma.tenantMembership.upsert({
+                where: { userId_tenantId: { userId: user.id, tenantId: membershipTenantId } },
+                update: { role: 'SUPER_ADMIN' as any, isDefault: true },
+                create: { userId: user.id, tenantId: membershipTenantId, role: 'SUPER_ADMIN' as any, isDefault: true },
+              }).catch(() => {})
+
+              // Refresh memberships after ensuring the row exists
+              tenantMemberships = await prisma.tenantMembership.findMany({ where: { userId: user.id }, include: { tenant: true } }).catch(() => [])
+            }
+          }
+        } catch (err) {
+          // Don't block login for membership sync failures, but log audit entry
+          try { await logAudit({ action: 'auth.superadmin.membership.sync.failed', actorId: user.id, targetId: user.id, details: { error: String(err) } }) } catch {}
+        }
 
         // Determine active tenant membership (the one used for login)
         const activeMembership = tenantMemberships.find(m => m.tenantId === tenantId) || tenantMemberships[0] || null
@@ -263,6 +284,11 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token) {
+        // Preserve email from token (critical for API requests)
+        if (token.email) {
+          session.user.email = token.email
+        }
+
         const tenantId = (token as any).tenantId ?? null
         const tenantSlug = (token as any).tenantSlug ?? null
         const tenantRole = (token as any).tenantRole ?? null

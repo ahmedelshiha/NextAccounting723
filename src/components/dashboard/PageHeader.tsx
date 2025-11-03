@@ -5,35 +5,45 @@ import Link from 'next/link'
 import type { ActionItem, IconType } from '@/types/dashboard'
 import { validateActionItem, devValidateProps } from '@/utils/actionItemValidator'
 
+const ICON_CLASS = 'w-4 h-4'
+const REACT_FORWARD_REF = typeof Symbol === 'function' ? Symbol.for('react.forward_ref') : null
+const REACT_MEMO = typeof Symbol === 'function' ? Symbol.for('react.memo') : null
+
+const mergeIconClass = (existing?: string) => [ICON_CLASS, existing].filter(Boolean).join(' ')
+
+// Sanitize icon to a component reference if a React element was passed
+const sanitizeIcon = (icon?: any) => {
+  if (!icon) return icon
+  if (React.isValidElement(icon) && (icon as any).type) return (icon as any).type
+  return icon
+}
+
 // Helper to render icon (handles both IconType and ReactNode)
 const renderIcon = (icon?: IconType | React.ReactNode) => {
   if (!icon) return null
-  
+
   try {
     // If it's a function (IconType), render it as a component
     if (typeof icon === 'function') {
       const Icon = icon as IconType
-      // Validate that it's a proper React component
       if (Icon && typeof Icon === 'function') {
-        return <Icon className="w-4 h-4" />
+        return <Icon className={ICON_CLASS} />
       }
     }
-    
-    // If it's a valid React element, render it
+
+    // If it's a valid React element, clone to ensure we apply sizing styles consistently
     if (React.isValidElement(icon)) {
-      return icon
+      const element = icon as React.ReactElement<{ className?: string }>
+      return React.cloneElement(element, { className: mergeIconClass(element.props.className) })
     }
-    
-    // Enhanced validation: detect React element objects (common error #31 cause)
+
+    // Handle forwardRef/memo exotic component wrappers
     if (icon && typeof icon === 'object' && '$$typeof' in (icon as any)) {
-      console.error('PageHeader: React element object passed as icon instead of component reference', {
-        iconType: typeof icon,
-        iconKeys: Object.keys(icon as any),
-        hasRender: 'render' in (icon as any),
-        hasDisplayName: 'displayName' in (icon as any),
-        icon
-      })
-      return null
+      const marker = (icon as any).$$typeof
+      if ((marker === REACT_FORWARD_REF || marker === REACT_MEMO) && typeof (icon as any).render === 'function') {
+        const ExoticIcon = icon as unknown as React.ComponentType<{ className?: string }>
+        return React.createElement(ExoticIcon, { className: ICON_CLASS })
+      }
     }
 
     // If it's a string or number, don't render it as an icon
@@ -67,14 +77,14 @@ const renderActionButton = (action: ActionItem, isPrimary: boolean = false) => {
   const primaryClasses = "text-white bg-green-600 hover:bg-green-700"
   const secondaryClasses = "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
   const classes = `${baseClasses} ${isPrimary ? primaryClasses : secondaryClasses}`
-  
+
   const content = (
     <>
       {renderIcon(action.icon)}
       {action.label}
     </>
   )
-  
+
   // If href is provided, render as Link
   if (action.href) {
     return (
@@ -83,7 +93,7 @@ const renderActionButton = (action: ActionItem, isPrimary: boolean = false) => {
       </Link>
     )
   }
-  
+
   // Otherwise render as button with onClick
   return (
     <button onClick={action.onClick} className={classes} disabled={action.disabled}>
@@ -92,25 +102,35 @@ const renderActionButton = (action: ActionItem, isPrimary: boolean = false) => {
   )
 }
 
-export default function PageHeader({ title, subtitle, primaryAction, secondaryActions = [] }: { title: string; subtitle?: string; primaryAction?: ActionItem; secondaryActions?: ActionItem[] }) {
-  // Development-only validation
+export default function PageHeader({ title, subtitle, primaryAction, secondaryActions = [] }: { title: string; subtitle?: string; primaryAction?: ActionItem | ActionItem[]; secondaryActions?: ActionItem[] }) {
+  // Normalize actions and sanitize icons
+  const safePrimaryArray = Array.isArray(primaryAction) ? (primaryAction as ActionItem[]) : undefined
+  const normalizedPrimary = (safePrimaryArray ? safePrimaryArray[0] : (primaryAction as ActionItem | undefined))
+    ? { ...(safePrimaryArray ? safePrimaryArray[0] : (primaryAction as ActionItem)), icon: sanitizeIcon((safePrimaryArray ? safePrimaryArray[0] : (primaryAction as any))?.icon) }
+    : undefined
+
+  const normalizedSecondary = (Array.isArray(secondaryActions) ? secondaryActions : [])
+    .filter((a) => a && typeof a === 'object')
+    .map((a) => ({ ...(a as ActionItem), icon: sanitizeIcon((a as any).icon) }))
+
+  // Development-only validation (run against normalized values)
   React.useEffect(() => {
-    devValidateProps({ primaryAction, secondaryActions }, 'PageHeader')
-    
-    if (primaryAction) {
-      const validation = validateActionItem(primaryAction, 'PageHeader.primaryAction')
+    devValidateProps({ primaryAction: normalizedPrimary, secondaryActions: normalizedSecondary }, 'PageHeader')
+
+    if (normalizedPrimary) {
+      const validation = validateActionItem(normalizedPrimary, 'PageHeader.primaryAction')
       if (!validation.isValid) {
         console.error('🚨 PageHeader: Invalid primaryAction:', validation.errors)
       }
     }
-    
-    secondaryActions.forEach((action, index) => {
+
+    normalizedSecondary.forEach((action, index) => {
       const validation = validateActionItem(action, `PageHeader.secondaryActions[${index}]`)
       if (!validation.isValid) {
         console.error(`🚨 PageHeader: Invalid secondaryAction[${index}]:`, validation.errors)
       }
     })
-  }, [primaryAction, secondaryActions])
+  }, [normalizedPrimary, normalizedSecondary])
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-6 mb-6 -mx-6 -mt-4">
@@ -120,12 +140,12 @@ export default function PageHeader({ title, subtitle, primaryAction, secondaryAc
           {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-3">
-          {secondaryActions.map((action, i) => (
+          {normalizedSecondary.map((action, i) => (
             <React.Fragment key={i}>
               {renderActionButton(action, false)}
             </React.Fragment>
           ))}
-          {primaryAction && renderActionButton(primaryAction, true)}
+          {normalizedPrimary && renderActionButton(normalizedPrimary, true)}
         </div>
       </div>
     </div>

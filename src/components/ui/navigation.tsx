@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useClientNotifications } from '@/hooks/useClientNotifications'
+import { hasRole } from '@/lib/permissions'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -71,7 +72,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const user = session?.user as any
-  const isAdminUser = ['ADMIN','TEAM_LEAD','TEAM_MEMBER'].includes((user?.role as string) || '')
+  const isAdminUser = hasRole((user?.role as string) || '', ['ADMIN','TEAM_LEAD','TEAM_MEMBER'])
 
   // prefer centralized settings when provider present
   const ctx = useOrgSettings()
@@ -94,7 +95,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
             <Link href="/" aria-label={`${orgName} home`} className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden">
                 {orgLogoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={orgLogoUrl} alt={`${orgName} logo`} className="h-8 w-8 object-cover" />
                 ) : (
                   <span className="text-white font-bold text-sm">{(orgName || 'A').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</span>
@@ -163,7 +164,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/portal/settings" className="flex items-center">
+                          <Link href="/admin/profile?tab=preferences" className="flex items-center">
                             <Settings className="mr-2 h-4 w-4" />
                             Settings
                           </Link>
@@ -186,12 +187,12 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/portal/settings" className="flex items-center">
+                          <Link href="/admin/profile?tab=preferences" className="flex items-center">
                             <Settings className="mr-2 h-4 w-4" />
                             Settings
                           </Link>
                         </DropdownMenuItem>
-                        {['ADMIN','TEAM_LEAD','TEAM_MEMBER'].includes((session?.user?.role as string) || '') && (
+                        {hasRole(((session?.user?.role as string) || ''), ['ADMIN', 'TEAM_LEAD', 'TEAM_MEMBER']) && (
                           <>
                             <DropdownMenuItem asChild>
                               <Link href="/admin" className="flex items-center">
@@ -279,7 +280,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
                           Admin Panel
                         </Link>
                         <Link
-                          href="/portal/settings"
+                          href="/admin/profile?tab=preferences"
                           className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
                           onClick={() => setMobileMenuOpen(false)}
                         >
@@ -297,13 +298,13 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
                           My Bookings
                         </Link>
                         <Link
-                          href="/portal/settings"
+                          href="/admin/profile?tab=preferences"
                           className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Settings
                         </Link>
-                        {['ADMIN','TEAM_LEAD','TEAM_MEMBER'].includes((session?.user?.role as string) || '') && (
+                        {hasRole(((session?.user?.role as string) || ''), ['ADMIN', 'TEAM_LEAD', 'TEAM_MEMBER']) && (
                           <>
                             <Link
                               href="/admin"

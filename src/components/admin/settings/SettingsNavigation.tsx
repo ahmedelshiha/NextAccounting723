@@ -24,8 +24,8 @@ export default function SettingsNavigation({ className = '' }: { className?: str
   return (
     <aside className={`settings-navigation w-full ${className}`} aria-label="Settings navigation">
       <div className="sticky top-6 space-y-3">
-        <nav className="bg-white border rounded-lg p-3">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Settings</h3>
+        <nav className="bg-card border border-border rounded-lg p-3">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2">Settings</h3>
           <ul className="space-y-1">
             {items.map((item) => {
               const Icon = item.icon as any
@@ -35,11 +35,11 @@ export default function SettingsNavigation({ className = '' }: { className?: str
                   <Link
                     href={item.route}
                     className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors w-full ${
-                      isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'
+                      isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-muted-foreground hover:bg-background'
                     }`}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    {Icon ? <Icon className={`w-4 h-4 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} /> : null}
+                    {Icon ? <Icon className={`w-4 h-4 ${isActive ? 'text-blue-500' : 'text-muted-foreground'}`} /> : null}
                     <span className="truncate">{item.label}</span>
                   </Link>
                 </li>
@@ -49,14 +49,14 @@ export default function SettingsNavigation({ className = '' }: { className?: str
         </nav>
 
         {pathname !== '/admin/settings' && (
-          <div className="bg-white border rounded-lg p-3">
-            <h4 className="text-xs font-semibold text-gray-500 mb-2">Quick Links</h4>
+          <div className="bg-card border border-border rounded-lg p-3">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Quick Links</h4>
             <ul className="text-sm space-y-1">
               <li>
-                <a href="/admin/settings/booking" className="text-gray-600 hover:text-gray-800">Booking Settings</a>
+                <a href="/admin/settings/booking" className="text-muted-foreground hover:text-foreground">Booking Settings</a>
               </li>
               <li>
-                <a href="/admin/settings/financial" className="text-gray-600 hover:text-gray-800">Financial Settings</a>
+                <a href="/admin/settings/financial" className="text-muted-foreground hover:text-foreground">Financial Settings</a>
               </li>
             </ul>
           </div>

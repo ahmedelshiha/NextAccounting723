@@ -19,31 +19,31 @@ const AdminDashboardLayout = lazy(() => import('./AdminDashboardLayout'))
  * Shows while the main admin layout is being loaded
  */
 const AdminLayoutSkeleton: React.FC = () => (
-  <div className="min-h-screen bg-gray-50 flex">
+  <div className="min-h-screen bg-background flex">
     {/* Sidebar Skeleton */}
-    <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0">
+    <div className="w-64 bg-card border-r border-border flex-shrink-0">
       {/* Brand Section Skeleton */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-gray-300 rounded-lg animate-pulse" />
+          <div className="w-8 h-8 bg-muted rounded-lg animate-pulse" />
           <div className="ml-3">
-            <div className="w-16 h-4 bg-gray-300 rounded animate-pulse mb-1" />
-            <div className="w-24 h-3 bg-gray-200 rounded animate-pulse" />
+            <div className="w-16 h-4 bg-muted rounded animate-pulse mb-1" />
+            <div className="w-24 h-3 bg-muted rounded animate-pulse" />
           </div>
         </div>
       </div>
 
       {/* Quick Actions Skeleton */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="w-full h-9 bg-gray-300 rounded-lg animate-pulse" />
+      <div className="p-4 border-b border-border">
+        <div className="w-full h-9 bg-muted rounded-lg animate-pulse" />
       </div>
 
       {/* Navigation Skeleton */}
       <div className="p-4 space-y-2">
         {[1, 2, 3, 4, 5, 6].map((item) => (
           <div key={item} className="flex items-center gap-3 px-3 py-2">
-            <div className="w-5 h-5 bg-gray-300 rounded animate-pulse" />
-            <div className="w-20 h-4 bg-gray-300 rounded animate-pulse" />
+            <div className="w-5 h-5 bg-muted rounded animate-pulse" />
+            <div className="w-20 h-4 bg-muted rounded animate-pulse" />
           </div>
         ))}
       </div>
@@ -52,35 +52,35 @@ const AdminLayoutSkeleton: React.FC = () => (
     {/* Main Content Skeleton */}
     <div className="flex-1">
       {/* Header Skeleton */}
-      <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center">
+      <div className="h-16 bg-card border-b border-border px-6 flex items-center">
         <div className="flex items-center gap-4 flex-1">
-          <div className="w-6 h-6 bg-gray-300 rounded animate-pulse" />
+          <div className="w-6 h-6 bg-muted rounded animate-pulse" />
           <div className="flex items-center gap-2">
-            <div className="w-12 h-4 bg-gray-300 rounded animate-pulse" />
-            <div className="w-4 h-4 bg-gray-300 rounded animate-pulse" />
-            <div className="w-16 h-4 bg-gray-300 rounded animate-pulse" />
+            <div className="w-12 h-4 bg-muted rounded animate-pulse" />
+            <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+            <div className="w-16 h-4 bg-muted rounded animate-pulse" />
           </div>
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="w-64 h-9 bg-gray-300 rounded-lg animate-pulse" />
-          <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse" />
-          <div className="w-24 h-8 bg-gray-300 rounded animate-pulse" />
+          <div className="w-64 h-9 bg-muted rounded-lg animate-pulse" />
+          <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
+          <div className="w-24 h-8 bg-muted rounded animate-pulse" />
         </div>
       </div>
 
       {/* Page Content Skeleton */}
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="w-32 h-6 bg-gray-300 rounded animate-pulse mb-4" />
+          <div className="w-32 h-6 bg-muted rounded animate-pulse mb-4" />
           <div className="space-y-4">
-            <div className="w-full h-40 bg-gray-300 rounded-lg animate-pulse" />
+            <div className="w-full h-40 bg-muted rounded-lg animate-pulse" />
             <div className="grid grid-cols-3 gap-4">
-              <div className="w-full h-24 bg-gray-300 rounded-lg animate-pulse" />
-              <div className="w-full h-24 bg-gray-300 rounded-lg animate-pulse" />
-              <div className="w-full h-24 bg-gray-300 rounded-lg animate-pulse" />
+              <div className="w-full h-24 bg-muted rounded-lg animate-pulse" />
+              <div className="w-full h-24 bg-muted rounded-lg animate-pulse" />
+              <div className="w-full h-24 bg-muted rounded-lg animate-pulse" />
             </div>
-            <div className="w-full h-60 bg-gray-300 rounded-lg animate-pulse" />
+            <div className="w-full h-60 bg-muted rounded-lg animate-pulse" />
           </div>
         </div>
       </div>
@@ -122,17 +122,17 @@ class AdminLayoutErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="max-w-md text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            <h2 className="text-lg font-semibold text-foreground mb-2">
               Admin Dashboard Loading Error
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               There was an error loading the admin dashboard. Please try refreshing the page.
             </p>
             <button

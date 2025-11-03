@@ -10,11 +10,17 @@ interface UseServicesDataOptions {
   autoRefresh?: number;
 }
 
+export type AuthError = {
+  type: 'unauthorized' | 'forbidden';
+  statusCode: 401 | 403;
+};
+
 export function useServicesData(options: UseServicesDataOptions = {}) {
   const [services, setServices] = useState<Service[]>([]);
   const [stats, setStats] = useState<ServiceStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<AuthError | null>(null);
 
   const [filters, setFilters] = useState<ServiceFilters>({
     search: '',
@@ -30,13 +36,26 @@ export function useServicesData(options: UseServicesDataOptions = {}) {
     try {
       setLoading(true);
       setError(null);
+      setAuthError(null);
       const qp = new URLSearchParams();
       if (debouncedSearch) qp.set('search', debouncedSearch);
       if (filters.category && filters.category !== 'all') qp.set('category', String(filters.category));
       if (filters.featured && filters.featured !== 'all') qp.set('featured', String(filters.featured));
       if (filters.status && filters.status !== 'all') qp.set('status', String(filters.status));
       const res = await apiFetch(`/api/admin/services?${qp.toString()}`);
-      if (!res.ok) throw new Error('Failed to load services');
+
+      if (res.status === 401) {
+        setAuthError({ type: 'unauthorized', statusCode: 401 });
+        return;
+      }
+      if (res.status === 403) {
+        setAuthError({ type: 'forbidden', statusCode: 403 });
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Failed to load services (${res.status})`);
+      }
       const data = await res.json();
       setServices(Array.isArray(data.services) ? data.services : []);
     } catch (e) {
@@ -48,9 +67,24 @@ export function useServicesData(options: UseServicesDataOptions = {}) {
 
   const loadStats = useCallback(async () => {
     try {
+      setAuthError(null);
       const res = await apiFetch('/api/admin/services/stats');
-      if (res.ok) setStats(await res.json());
-    } catch {}
+
+      if (res.status === 401 || res.status === 403) {
+        setAuthError({
+          type: res.status === 401 ? 'unauthorized' : 'forbidden',
+          statusCode: res.status
+        });
+        return;
+      }
+
+      if (res.ok) {
+        setStats(await res.json());
+      }
+    } catch (e) {
+      // Silently fail on stats to not interrupt other data
+      console.debug('Stats fetch error:', e);
+    }
   }, []);
 
   useEffect(() => { loadServices(); }, [loadServices]);
@@ -65,5 +99,5 @@ export function useServicesData(options: UseServicesDataOptions = {}) {
 
   const refresh = useCallback(() => { loadServices(); loadStats(); }, [loadServices, loadStats]);
 
-  return { services, stats, loading, error, filters, setFilters, refresh };
+  return { services, stats, loading, error, authError, filters, setFilters, refresh };
 }

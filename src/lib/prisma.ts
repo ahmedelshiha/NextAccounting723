@@ -1,5 +1,6 @@
 import type { PrismaClient as PrismaClientType } from '@prisma/client'
 import { registerTenantGuard } from '@/lib/prisma-tenant-guard'
+import { setupPrismaQueryMonitor } from '@/lib/prisma-query-monitor'
 
 declare global {
   // Cache Prisma in global for hot-reload/dev to avoid multiple instances
@@ -70,6 +71,12 @@ async function createRealClient(url: string): Promise<PrismaClientType> {
       url ? { datasources: { db: { url } } } : undefined,
     )
     registerTenantGuard(client as any)
+
+    // Setup slow-query monitoring for observability
+    if (process.env.NODE_ENV === 'development' || process.env.LOG_SLOW_QUERIES === 'true') {
+      setupPrismaQueryMonitor(client as any)
+    }
+
     return client
   } catch (err) {
     if (process.env.NODE_ENV === 'test') {
@@ -93,7 +100,12 @@ export async function getPrisma(): Promise<PrismaClientType> {
   }
 
   if (!dbUrl) {
-    throw new Error('Database is not configured. Set NETLIFY_DATABASE_URL or DATABASE_URL to enable DB features.')
+    // In test or development environments, prefer a safe mock client to avoid hard failures
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Database is not configured. Set NETLIFY_DATABASE_URL or DATABASE_URL to enable DB features.')
+    }
+    // Return a lightweight mock Prisma client so code paths that import prisma don't crash when DB is unavailable
+    return buildMockPrisma()
   }
 
   let client = (typeof global !== 'undefined' ? (global as any).__prisma__ : undefined) as

@@ -16,6 +16,7 @@ interface PerformanceMetrics {
   sessionStartTime: number
   routeChangeTime?: number
   sidebarToggleTime?: number
+  apiEndpointMetrics?: Record<string, { count: number; maxDuration: number; totalDuration: number; p95: number }>
 }
 
 interface PerformanceAlert {
@@ -24,6 +25,7 @@ interface PerformanceAlert {
   value: number
   threshold: number
   timestamp: number
+  url?: string
 }
 
 const PERFORMANCE_THRESHOLDS = {
@@ -35,16 +37,37 @@ const PERFORMANCE_THRESHOLDS = {
   renderTime: 500,
 }
 
+/**
+ * Sampling rate for performance alerts (0.1 = log 10% of sampled alerts)
+ * This reduces noise from high-frequency metrics while still capturing patterns
+ */
+const ALERT_SAMPLING_RATE = 0.1
+
+/**
+ * Extract the endpoint path from a full URL for grouping
+ * e.g., "/api/admin/services/stats?range=30d" -> "/api/admin/services/stats"
+ */
+function extractApiEndpoint(url: string): string {
+  try {
+    const path = new URL(url, window.location.origin).pathname
+    return path
+  } catch {
+    return url
+  }
+}
+
 export function usePerformanceMonitoring(componentName: string = 'AdminDashboard') {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     userInteractions: 0,
     errorCount: 0,
     sessionStartTime: Date.now(),
+    apiEndpointMetrics: {},
   })
 
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([])
   const metricsRef = useRef<PerformanceMetrics>(metrics)
   const componentMountTime = useRef<number>(Date.now())
+  const apiMetricsRef = useRef<Record<string, number[]>>({})
 
   useEffect(() => {
     metricsRef.current = metrics
@@ -85,25 +108,33 @@ export function usePerformanceMonitoring(componentName: string = 'AdminDashboard
     })
   }
 
-  const checkThreshold = (metric: string, value: number) => {
+  const checkThreshold = (metric: string, value: number, url?: string) => {
     const threshold = (PERFORMANCE_THRESHOLDS as any)[metric]
     if (threshold && value > threshold) {
+      // Apply sampling to reduce noise in logs
+      const shouldLog = Math.random() < ALERT_SAMPLING_RATE
+
       const alert: PerformanceAlert = {
         type: value > threshold * 1.5 ? 'error' : 'warning',
         metric,
         value,
         threshold,
         timestamp: Date.now(),
+        url,
       }
 
       setAlerts(prev => [...prev.slice(-4), alert])
 
-      logger.warn(`Performance threshold exceeded for ${metric}`, {
-        metric,
-        value,
-        threshold,
-        severity: alert.type,
-      })
+      if (shouldLog) {
+        logger.warn(`Performance threshold exceeded for ${metric}`, {
+          metric,
+          value,
+          threshold,
+          severity: alert.type,
+          ...(url && { url }),
+          samplingRate: ALERT_SAMPLING_RATE,
+        })
+      }
     }
   }
 
@@ -154,7 +185,57 @@ export function usePerformanceMonitoring(componentName: string = 'AdminDashboard
 
         const resourceObserver = new PerformanceObserver((list) => {
           list.getEntries().forEach((entry: any) => {
-            if (entry.name.includes('/api/')) updateMetric('apiResponseTime', entry.duration)
+            if (entry.name.includes('/api/')) {
+              const duration = entry.duration
+              const endpoint = extractApiEndpoint(entry.name)
+
+              // Update global apiResponseTime metric
+              updateMetric('apiResponseTime', duration)
+
+              // Track per-endpoint metrics
+              if (!apiMetricsRef.current[endpoint]) {
+                apiMetricsRef.current[endpoint] = []
+              }
+              apiMetricsRef.current[endpoint].push(duration)
+
+              // Check threshold with endpoint context
+              const threshold = PERFORMANCE_THRESHOLDS.apiResponseTime
+              if (duration > threshold) {
+                checkThreshold('apiResponseTime', duration, endpoint)
+              }
+
+              // Update aggregated endpoint metrics
+              const durations = apiMetricsRef.current[endpoint]
+              const maxDuration = Math.max(...durations)
+              const totalDuration = durations.reduce((a, b) => a + b, 0)
+              const sorted = [...durations].sort((a, b) => a - b)
+              const p95Index = Math.floor(sorted.length * 0.95)
+              const p95 = sorted[p95Index] || 0
+
+              setMetrics(prev => ({
+                ...prev,
+                apiEndpointMetrics: {
+                  ...prev.apiEndpointMetrics,
+                  [endpoint]: {
+                    count: durations.length,
+                    maxDuration,
+                    totalDuration,
+                    p95,
+                  }
+                }
+              }))
+
+              // Log slow endpoint if sampling hits
+              if (duration > threshold && Math.random() < ALERT_SAMPLING_RATE) {
+                logger.info('Slow API endpoint detected', {
+                  endpoint,
+                  duration,
+                  threshold,
+                  p95,
+                  callCount: durations.length,
+                })
+              }
+            }
           })
         })
         resourceObserver.observe({ entryTypes: ['resource'] })

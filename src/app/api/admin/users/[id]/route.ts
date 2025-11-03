@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 import { logAudit } from '@/lib/audit'
+import { AuditLogService } from '@/services/audit-log.service'
 import { getClientIp, applyRateLimit } from '@/lib/rate-limit'
 import { tenantFilter } from '@/lib/tenant'
 import { realtimeService } from '@/lib/realtime-enhanced'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
+import { respond } from '@/lib/api-response'
 
 export const runtime = 'nodejs'
 
@@ -14,9 +16,8 @@ export const PATCH = withTenantContext(async (request: NextRequest, context: { p
   try {
     const ctx = requireTenantContext()
     const role = ctx.role ?? ''
-    if (!ctx.userId || !hasPermission(role, PERMISSIONS.USERS_MANAGE)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!ctx.userId) return respond.unauthorized()
+    if (!hasPermission(role, PERMISSIONS.USERS_MANAGE)) return respond.forbidden('Forbidden')
 
     const hasDb = Boolean(process.env.NETLIFY_DATABASE_URL)
     if (!hasDb) {
@@ -53,19 +54,49 @@ export const PATCH = withTenantContext(async (request: NextRequest, context: { p
     if (parsed.data.email !== undefined) data.email = parsed.data.email
     if (parsed.data.role !== undefined) data.role = parsed.data.role as import('@prisma/client').UserRole
 
+    const oldUser = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true, name: true, email: true }
+    })
+
     const updated = await prisma.user.update({
       where: { id },
       data,
       select: { id: true, name: true, email: true, role: true, createdAt: true }
     })
 
-    if (parsed.data.role !== undefined) {
-      await logAudit({
-        action: 'user.role.update',
-        actorId: ctx.userId,
-        targetId: id,
-        details: { to: parsed.data.role }
-      })
+    if (parsed.data.role !== undefined && oldUser?.role !== parsed.data.role) {
+      // Log role change to comprehensive audit trail
+      try {
+        if (tenantId) {
+          await AuditLogService.createAuditLog({
+            tenantId: tenantId,
+            userId: ctx.userId,
+            action: 'user.role.update',
+            resource: `user:${id}`,
+            metadata: {
+              targetUserId: id,
+              targetEmail: updated.email,
+              targetName: updated.name,
+              oldRole: oldUser?.role,
+              newRole: parsed.data.role,
+              timestamp: new Date().toISOString()
+            },
+            ipAddress: ip,
+            userAgent: request.headers.get('user-agent') || undefined
+          })
+        }
+      } catch (auditError) {
+        console.error('Failed to create audit log for role change:', auditError)
+        // Log to simple audit as fallback
+        await logAudit({
+          action: 'user.role.update',
+          actorId: ctx.userId,
+          targetId: id,
+          details: { oldRole: oldUser?.role, newRole: parsed.data.role }
+        })
+      }
+
       try {
         realtimeService.broadcastToUser(String(id), {
           type: 'user-role-updated',
@@ -73,13 +104,44 @@ export const PATCH = withTenantContext(async (request: NextRequest, context: { p
           timestamp: new Date().toISOString()
         })
       } catch {}
-    } else {
-      await logAudit({
-        action: 'user.update',
-        actorId: ctx.userId,
-        targetId: id,
-        details: { fields: Object.keys(data) }
-      })
+    } else if (Object.keys(data).length > 0) {
+      // Log other user updates
+      try {
+        if (tenantId) {
+          await AuditLogService.createAuditLog({
+            tenantId: tenantId,
+            userId: ctx.userId,
+            action: 'user.update',
+            resource: `user:${id}`,
+            metadata: {
+              targetUserId: id,
+              targetEmail: updated.email,
+              targetName: updated.name,
+              updatedFields: Object.keys(data),
+              timestamp: new Date().toISOString()
+            },
+            ipAddress: ip,
+            userAgent: request.headers.get('user-agent') || undefined
+          })
+        } else {
+          // Fallback when tenantId is null
+          await logAudit({
+            action: 'user.update',
+            actorId: ctx.userId,
+            targetId: id,
+            details: { fields: Object.keys(data) }
+          })
+        }
+      } catch (auditError) {
+        console.error('Failed to create audit log for user update:', auditError)
+        // Log to simple audit as fallback
+        await logAudit({
+          action: 'user.update',
+          actorId: ctx.userId,
+          targetId: id,
+          details: { fields: Object.keys(data) }
+        })
+      }
     }
 
     return NextResponse.json(updated)

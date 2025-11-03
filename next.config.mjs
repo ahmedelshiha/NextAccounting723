@@ -12,61 +12,25 @@ const nextConfig = {
   allowedDevOrigins: ["*.projects.builder.codes", "*.fly.dev"],
   turbopack: {},
   
-  // Webpack optimization for better bundle splitting
-  webpack: (config, { isServer, buildId }) => {
-    if (!isServer) {
-      // Optimize chunk splitting for admin components
-      config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
-        chunks: 'all',
-        cacheGroups: {
-          ...config.optimization.splitChunks.cacheGroups,
-          // Separate admin components into their own chunk
-          adminComponents: {
-            name: 'admin-components',
-            test: /[\\/]src[\\/]components[\\/]admin[\\/]/,
-            chunks: 'all',
-            priority: 10,
-            enforce: true,
-          },
-          // Admin hooks and utilities  
-          adminUtils: {
-            name: 'admin-utils',
-            test: /[\\/]src[\\/](hooks|stores|types)[\\/]admin[\\/]/,
-            chunks: 'all',
-            priority: 9,
-            enforce: true,
-          },
-          // UI components shared across the app
-          uiComponents: {
-            name: 'ui-components',
-            test: /[\\/]src[\\/]components[\\/]ui[\\/]/,
-            chunks: 'all',
-            priority: 8,
-          },
-          // Zustand and other state management libraries
-          stateManagement: {
-            name: 'state-management',
-            test: /[\\/]node_modules[\\/](zustand|react-query|swr)[\\/]/,
-            chunks: 'all',
-            priority: 7,
-          },
-          // Icon libraries
-          icons: {
-            name: 'icons',
-            test: /[\\/]node_modules[\\/](lucide-react|heroicons)[\\/]/,
-            chunks: 'all',
-            priority: 6,
-          },
-        },
-      }
-    }
-    
-    return config
-  },
   
   // External packages for server components
-  serverExternalPackages: ['@sentry/nextjs'],
+  serverExternalPackages: ['@sentry/nextjs', 'ioredis'],
+  // Prevent bundling node built-ins into client bundles (stubs for Turbopack/webpack)
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = config.resolve || {}
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+        child_process: false,
+        crypto: false,
+      }
+    }
+    return config
+  },
   
   // Experimental features for better performance
   experimental: {
@@ -127,6 +91,6 @@ const sentryPluginOptions = {
   disableClientWebpackPlugin: disableSourcemapsOnNetlify,
 }
 
-const configWithSentry = process.env.NODE_ENV === 'production' ? withSentryConfig(nextConfig, sentryPluginOptions) : nextConfig
+const configWithSentry = (process.env.NODE_ENV === 'production' && !!process.env.SENTRY_AUTH_TOKEN) ? withSentryConfig(nextConfig, sentryPluginOptions) : nextConfig
 
 export default configWithSentry

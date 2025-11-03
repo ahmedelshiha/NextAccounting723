@@ -121,6 +121,97 @@
   }
 }
 
+/* Animation keyframes */
+@keyframes theme-change {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes status-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dropdown-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+@keyframes icon-translate {
+  to {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes sheet-enter {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Animation utility classes */
+.animate-theme-change {
+  animation: theme-change 300ms ease-in-out;
+}
+
+.animate-status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.animate-dropdown-enter {
+  animation: dropdown-enter 150ms ease-out;
+}
+
+.animate-icon-translate {
+  animation: icon-translate 150ms ease-out forwards;
+}
+
+.animate-sheet-enter {
+  animation: sheet-enter 300ms ease-out;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-theme-change,
+  .animate-status-pulse,
+  .animate-dropdown-enter,
+  .animate-icon-translate,
+  .animate-sheet-enter {
+    animation: none;
+  }
+}
+
 /* RTL helper styles */
 .rtl {
   direction: rtl;

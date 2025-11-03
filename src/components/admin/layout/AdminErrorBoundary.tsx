@@ -73,17 +73,17 @@ class AdminErrorBoundary extends React.Component<AdminErrorBoundaryProps, AdminE
 
       // Default error UI
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0">
                 <AlertTriangle className="h-8 w-8 text-red-500" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+                <h1 className="text-lg font-semibold text-foreground">
                   Admin Dashboard Loading Error
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   There was an error loading the admin dashboard. Please try refreshing the page.
                 </p>
               </div>
@@ -100,7 +100,7 @@ class AdminErrorBoundary extends React.Component<AdminErrorBoundaryProps, AdminE
 
               <button
                 onClick={() => window.location.reload()}
-                className="w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="w-full px-4 py-2 text-muted-foreground bg-muted rounded-md hover:bg-muted/90 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               >
                 Refresh Page
               </button>
