@@ -2,10 +2,18 @@ import { useCallback, useRef } from 'react'
 import { apiFetch } from '@/lib/api'
 import { UserItem } from '../contexts/UserDataContext'
 
+export interface UserFilterQuery {
+  search?: string
+  role?: string
+  department?: string
+  tier?: string
+}
+
 interface FetchOptions {
   page?: number
   limit?: number
   signal?: AbortSignal
+  filters?: UserFilterQuery
 }
 
 interface ServiceCache {
@@ -63,7 +71,7 @@ export function useUnifiedUserService() {
 
   const fetchUsers = useCallback(
     async (options: FetchOptions = {}) => {
-      const { page = 1, limit = 50, signal } = options
+      const { page = 1, limit = 50, signal, filters } = options
 
       // Check cache first
       const cached = getFromCache()
@@ -93,8 +101,15 @@ export function useUnifiedUserService() {
             const timeoutId = setTimeout(() => controller.abort(), 30000)
 
             try {
+              const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+              if (filters) {
+                if (filters.search) params.set('search', filters.search)
+                if (filters.role && filters.role !== 'ALL') params.set('role', filters.role)
+                if (filters.department) params.set('department', filters.department)
+                if (filters.tier && filters.tier !== 'all' && filters.tier !== 'ALL') params.set('tier', filters.tier)
+              }
               const res = await apiFetch(
-                `/api/admin/users?page=${page}&limit=${limit}`,
+                `/api/admin/users?${params.toString()}`,
                 { signal: abortSignal } as any
               )
 
