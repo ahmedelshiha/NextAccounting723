@@ -40,51 +40,115 @@ const userServiceCache: ServiceCache = {
 }
 
 /**
- * Unified User Service Hook
+ * Unified User Service Hook - Phase 4.3
  *
  * Consolidates data fetching logic with:
- * - Request deduplication (prevents concurrent API calls)
- * - Exponential backoff retry logic
+ * - Automatic server-side filtering detection (uses /api/admin/users/search when filters provided)
+ * - Fallback to basic endpoint for simple pagination
+ * - Request deduplication (prevents concurrent API calls for same filters)
+ * - Exponential backoff retry logic (3 attempts with backoff)
  * - 30s timeout with abort controller
- * - Response caching
+ * - Response caching (30s TTL)
  * - Clean error handling
+ * - Support for all filter types: search, role, status, department, tier, experience range, date range
  *
  * Replaces duplicated logic in:
  * - useUsersList hook
  * - UserDataContext.refreshUsers()
  * - SelectUsersStep component
  * - ClientFormModal
+ * - Individual component filter logic
+ *
+ * @returns {Object} Service with fetchUsers, invalidateCache, abort, isCacheValid, getFromCache methods
  */
 export function useUnifiedUserService() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const pendingRequestRef = useRef<Promise<UserItem[]> | null>(null)
 
-  const issCacheValid = useCallback(() => {
+  /**
+   * Check if cache is still valid based on TTL
+   */
+  const isCacheValid = useCallback((filters?: ServerFilterOptions) => {
     return (
       userServiceCache.data !== null &&
-      Date.now() - userServiceCache.timestamp < userServiceCache.ttl
+      Date.now() - userServiceCache.timestamp < userServiceCache.ttl &&
+      (!filters || JSON.stringify(userServiceCache.filters) === JSON.stringify(filters))
     )
   }, [])
 
-  const getFromCache = useCallback((): UserItem[] | null => {
-    if (issCacheValid()) {
+  /**
+   * Get cached users if available and filters match
+   */
+  const getFromCache = useCallback((filters?: ServerFilterOptions): UserItem[] | null => {
+    if (isCacheValid(filters)) {
       return userServiceCache.data
     }
     userServiceCache.data = null
+    userServiceCache.filters = {}
     return null
-  }, [issCacheValid])
+  }, [isCacheValid])
 
-  const setCache = useCallback((data: UserItem[]) => {
+  /**
+   * Cache users with associated filters
+   */
+  const setCache = useCallback((data: UserItem[], filters?: ServerFilterOptions) => {
     userServiceCache.data = data
+    userServiceCache.filters = filters || {}
     userServiceCache.timestamp = Date.now()
   }, [])
 
+  /**
+   * Determine if filters are provided
+   */
+  const hasFilters = useCallback((options: FetchOptions): boolean => {
+    return !!(
+      options.search ||
+      options.role ||
+      options.status ||
+      options.department ||
+      options.tier ||
+      options.minExperience !== undefined ||
+      options.maxExperience !== undefined ||
+      options.createdAfter ||
+      options.createdBefore
+    )
+  }, [])
+
+  /**
+   * Build query string for search endpoint
+   */
+  const buildSearchQuery = useCallback((options: FetchOptions): string => {
+    const params = new URLSearchParams()
+
+    if (options.search) params.append('search', options.search)
+    if (options.role) params.append('role', options.role)
+    if (options.status) params.append('status', options.status)
+    if (options.department) params.append('department', options.department)
+    if (options.tier) params.append('tier', options.tier)
+    if (options.minExperience !== undefined) params.append('minExperience', options.minExperience.toString())
+    if (options.maxExperience !== undefined) params.append('maxExperience', options.maxExperience.toString())
+    if (options.createdAfter) params.append('createdAfter', options.createdAfter)
+    if (options.createdBefore) params.append('createdBefore', options.createdBefore)
+    if (options.sortBy) params.append('sortBy', options.sortBy)
+    if (options.sortOrder) params.append('sortOrder', options.sortOrder)
+
+    const page = options.page ?? 1
+    const limit = options.limit ?? 50
+    params.append('page', page.toString())
+    params.append('limit', limit.toString())
+
+    return params.toString()
+  }, [])
+
+  /**
+   * Fetch users with optional filters (uses search endpoint automatically)
+   */
   const fetchUsers = useCallback(
     async (options: FetchOptions = {}) => {
       const { page = 1, limit = 50, signal } = options
 
       // Check cache first
-      const cached = getFromCache()
+      const cached = getFromCache(options)
       if (cached) {
         return cached
       }
@@ -111,10 +175,13 @@ export function useUnifiedUserService() {
             const timeoutId = setTimeout(() => controller.abort(), 30000)
 
             try {
-              const res = await apiFetch(
-                `/api/admin/users?page=${page}&limit=${limit}`,
-                { signal: abortSignal } as any
-              )
+              // Determine which endpoint to use based on filters
+              const useSearch = hasFilters(options)
+              const endpoint = useSearch
+                ? `/api/admin/users/search?${buildSearchQuery(options)}`
+                : `/api/admin/users?page=${page}&limit=${limit}`
+
+              const res = await apiFetch(endpoint, { signal: abortSignal } as any)
 
               clearTimeout(timeoutId)
 
@@ -137,10 +204,19 @@ export function useUnifiedUserService() {
               }
 
               const data = await res.json()
-              const users = Array.isArray(data?.users) ? (data.users as UserItem[]) : []
 
-              // Cache the result
-              setCache(users)
+              // Handle both response formats (basic endpoint vs search endpoint)
+              let users: UserItem[] = []
+              if (useSearch && data?.data) {
+                // Search endpoint response format
+                users = Array.isArray(data.data) ? (data.data as UserItem[]) : []
+              } else if (!useSearch && data?.users) {
+                // Basic endpoint response format
+                users = Array.isArray(data.users) ? (data.users as UserItem[]) : []
+              }
+
+              // Cache the result with filters
+              setCache(users, options)
 
               return users
             } catch (fetchErr) {
@@ -180,7 +256,7 @@ export function useUnifiedUserService() {
         pendingRequestRef.current = null
       }
     },
-    [getFromCache, setCache]
+    [getFromCache, setCache, hasFilters, buildSearchQuery]
   )
 
   const invalidateCache = useCallback(() => {
