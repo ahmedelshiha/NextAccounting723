@@ -12,6 +12,57 @@ interface QuickStatsCardProps {
   className?: string
 }
 
+/**
+ * QuickStatsCard Component
+ *
+ * Phase 2: Sidebar stats card showing quick user metrics
+ * - Total users count
+ * - Active users count
+ * - Inactive users count
+ * - Last refresh timestamp
+ * - Refresh button with loading state
+ *
+ * @component
+ * @example
+ * ```tsx
+ * <QuickStatsCard
+ *   stats={{
+ *     totalUsers: 150,
+ *     activeUsers: 120,
+ *     inactiveUsers: 30,
+ *     refreshedAt: new Date()
+ *   }}
+ *   onRefresh={async () => {
+ *     await fetchStats()
+ *   }}
+ * />
+ * ```
+ *
+ * @param {QuickStatsCardProps} props - Component props
+ * @param {QuickStatsData} [props.stats] - Stats data with user counts
+ * @param {boolean} [props.isRefreshing] - Loading state for refresh operation
+ * @param {() => Promise<void>} [props.onRefresh] - Callback when refresh button clicked
+ * @param {string} [props.className] - Additional CSS class names
+ * @returns {React.ReactElement} Rendered stats card
+ *
+ * Accessibility:
+ * - Semantic <section> with aria-label
+ * - Refresh button has aria-label and aria-busy when loading
+ * - Stat labels and values properly associated
+ * - Last updated time in user-friendly format
+ * - Full keyboard accessible (Tab, Space/Enter to refresh)
+ * - Focus visible outline on refresh button
+ *
+ * Performance:
+ * - Memoized with React.memo
+ * - No unnecessary re-renders on prop changes
+ * - Efficient time formatting
+ *
+ * Responsive:
+ * - Full width in all breakpoints
+ * - Compact on mobile
+ * - Proper padding and spacing
+ */
 export const QuickStatsCard = memo(function QuickStatsCard({
   stats,
   isRefreshing = false,
