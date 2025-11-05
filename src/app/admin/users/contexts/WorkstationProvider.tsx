@@ -128,11 +128,13 @@ export function WorkstationProvider({ children }: WorkstationProviderProps) {
       // })
       // const result = await response.json()
 
-      console.log('Applying bulk action:', {
-        action: bulkActionType,
-        value: bulkActionValue,
-        users: Array.from(selectedUserIds),
-      })
+      if (process.env.WORKSTATION_LOGGING_ENABLED === 'true') {
+        console.log('Applying bulk action:', {
+          action: bulkActionType,
+          value: bulkActionValue,
+          users: Array.from(selectedUserIds),
+        })
+      }
     } catch (error) {
       console.error('Failed to apply bulk action:', error)
     } finally {
