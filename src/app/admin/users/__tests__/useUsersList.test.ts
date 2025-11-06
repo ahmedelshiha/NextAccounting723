@@ -1,16 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react'
+import { describe, it, beforeEach, vi, expect } from 'vitest'
 import { useUsersList } from '../hooks/useUsersList'
 
 // Mock apiFetch
-jest.mock('@/lib/api', () => ({
-  apiFetch: jest.fn()
+vi.mock('@/lib/api', () => ({
+  apiFetch: vi.fn()
 }))
 
 import { apiFetch } from '@/lib/api'
 
 describe('useUsersList', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should fetch users on mount', async () => {
@@ -19,7 +20,7 @@ describe('useUsersList', () => {
       { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'TEAM_MEMBER', createdAt: '2025-01-02' }
     ]
 
-    ;(apiFetch as jest.Mock).mockResolvedValueOnce({
+    ;(apiFetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ users: mockUsers })
     })
@@ -34,12 +35,12 @@ describe('useUsersList', () => {
   })
 
   it('should handle fetch errors gracefully', async () => {
-    ;(apiFetch as jest.Mock).mockResolvedValueOnce({
+    ;(apiFetch as any).mockResolvedValueOnce({
       ok: false,
       status: 500
     })
 
-    const onError = jest.fn()
+    const onError = vi.fn()
     const { result } = renderHook(() => useUsersList({ onError }))
 
     await waitFor(() => {
@@ -52,7 +53,7 @@ describe('useUsersList', () => {
   it('should provide refetch function', async () => {
     const mockUsers = [{ id: '1', name: 'John', email: 'john@example.com', role: 'ADMIN', createdAt: '2025-01-01' }]
 
-    ;(apiFetch as jest.Mock).mockResolvedValue({
+    ;(apiFetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({ users: mockUsers })
     })
@@ -70,7 +71,7 @@ describe('useUsersList', () => {
   })
 
   it('should handle empty user list', async () => {
-    ;(apiFetch as jest.Mock).mockResolvedValueOnce({
+    ;(apiFetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ users: [] })
     })
