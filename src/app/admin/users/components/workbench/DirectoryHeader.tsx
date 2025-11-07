@@ -27,7 +27,7 @@ export default function DirectoryHeader({
   onColumnSettings
 }: DirectoryHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50 rounded-t-lg">
+    <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50 rounded-t-lg" data-testid="directory-header">
       <div className="flex items-center gap-2">
         {/* Sidebar toggle for tablet/mobile */}
         <Button
