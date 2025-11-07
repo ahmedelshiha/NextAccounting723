@@ -78,7 +78,7 @@ test.describe('AdminWorkBench Dashboard - E2E Tests', () => {
       await firstCheckbox.click()
 
       // Bulk actions panel should appear
-      const bulkPanel = page.locator('[class*="bulk-actions"]')
+      const bulkPanel = page.locator('[data-testid="bulk-actions-panel"]')
       await expect(bulkPanel).toBeVisible()
 
       // Should show count
@@ -95,7 +95,7 @@ test.describe('AdminWorkBench Dashboard - E2E Tests', () => {
       }
 
       // Bulk actions panel should show correct count
-      const bulkPanel = page.locator('[class*="bulk-actions"]')
+      const bulkPanel = page.locator('[data-testid="bulk-actions-panel"]')
       await expect(bulkPanel).toContainText('3 user')
     })
 
