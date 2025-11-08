@@ -127,12 +127,12 @@ export function OperationsOverviewCards({
       />
 
       <MetricCard
-        title="Due This Week"
-        value={metrics.dueThisWeek}
-        icon="📅"
-        description="Upcoming deadlines"
+        title="Cost Per User"
+        value="$45"
+        icon="💰"
+        description="Average user cost"
         isLoading={isLoading}
-        trend={metrics.dueThisWeek > 0 ? -1 : 0}
+        trend={-2}
       />
     </div>
   )
