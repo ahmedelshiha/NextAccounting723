@@ -90,6 +90,33 @@ export function useFilterState(users: UserItem[]) {
     isFiltered: hasActiveFilters
   }
 
+  // Helper functions for multi-select operations
+  const toggleRole = useCallback((role: string) => {
+    setFilters(prev => ({
+      ...prev,
+      roles: prev.roles.includes(role)
+        ? prev.roles.filter(r => r !== role)
+        : [...prev.roles, role]
+    }))
+  }, [])
+
+  const toggleStatus = useCallback((status: string) => {
+    setFilters(prev => ({
+      ...prev,
+      statuses: prev.statuses.includes(status)
+        ? prev.statuses.filter(s => s !== status)
+        : [...prev.statuses, status]
+    }))
+  }, [])
+
+  const clearRoles = useCallback(() => {
+    setFilters(prev => ({ ...prev, roles: [] }))
+  }, [])
+
+  const clearStatuses = useCallback(() => {
+    setFilters(prev => ({ ...prev, statuses: [] }))
+  }, [])
+
   return {
     filters,
     setFilters,
@@ -97,6 +124,11 @@ export function useFilterState(users: UserItem[]) {
     filteredUsers,
     hasActiveFilters,
     clearFilters,
+    // Multi-select helpers
+    toggleRole,
+    toggleStatus,
+    clearRoles,
+    clearStatuses,
     stats
   }
 }
