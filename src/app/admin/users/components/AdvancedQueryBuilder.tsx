@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Plus, Trash2, Zap, Save, BookOpen } from 'lucide-react'
 import {
   FilterCondition,
