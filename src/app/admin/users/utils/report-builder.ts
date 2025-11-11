@@ -15,7 +15,7 @@ import {
  * Escape HTML special characters
  */
 function escapeHTML(str: string): string {
-  return String(str)
+  return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

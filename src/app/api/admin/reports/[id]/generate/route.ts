@@ -48,7 +48,6 @@ export const POST = withTenantContext(async (request: NextRequest, { params }: {
           id: true,
           name: true,
           email: true,
-          phone: true,
           role: true,
           availabilityStatus: true,
           department: true,

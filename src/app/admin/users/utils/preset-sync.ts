@@ -237,9 +237,13 @@ export function sanitizePresets(presets: ServerFilterPreset[]): ServerFilterPres
       }
     })
     .filter((p): p is ServerFilterPreset => {
-      return p !== null &&
-        typeof p === 'object' &&
-        'id' in p && 'name' in p && 'filters' in p && 'createdAt' in p && 'updatedAt' in p
+      if (p === null || typeof p !== 'object') return false
+      const preset = p as any
+      return (
+        'id' in preset && 'name' in preset && 'filters' in preset &&
+        'createdAt' in preset && 'updatedAt' in preset &&
+        'isPinned' in preset && 'usageCount' in preset
+      )
     })
 }
 
