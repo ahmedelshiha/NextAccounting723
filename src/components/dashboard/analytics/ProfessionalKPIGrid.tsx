@@ -85,9 +85,9 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
   ]
 
   return (
-    <div className="space-y-6 mb-8">
+    <div className="space-y-4 mb-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Key Performance Indicators</h2>
+        <h2 className="text-base font-semibold text-gray-900">Key Performance Indicators</h2>
         <div className="flex items-center gap-2">
           <label htmlFor="kpi-timeframe" className="text-sm text-gray-600">Period:</label>
           <select
