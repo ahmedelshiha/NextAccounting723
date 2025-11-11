@@ -4,11 +4,14 @@ import { useState, useCallback, useMemo } from 'react'
 import { UserItem } from '../contexts/UserDataContext'
 import { useFilterUsers } from './useFilterUsers'
 import { useAdvancedSearch } from './useAdvancedSearch'
+import { FilterGroup, FilterCondition } from '../types/query-builder'
 
 export interface FilterState {
   search: string
   roles: string[]      // Multi-select: array of roles
   statuses: string[]   // Multi-select: array of statuses
+  // Advanced query support for complex filters
+  advancedQuery?: FilterGroup | FilterCondition
   // Legacy single-select support (deprecated)
   role?: string | null
   status?: string | null
