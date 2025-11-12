@@ -2,12 +2,13 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight, AlertCircle } from "lucide-react";
 import { DataTable } from "@/components/dashboard/DataTable";
-import { usePermissionGate } from "@/hooks/usePermissionGate";
+import { PermissionGate } from "@/components/PermissionGate";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { logger } from "@/lib/logger";
 
 interface Entity {
@@ -17,48 +18,55 @@ interface Entity {
   status: string;
   legalForm?: string;
   createdAt: string;
-  registrations: Array<{ type: string; status: string }>;
+  registrations?: Array<{ type: string; status: string }>;
 }
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function EntitiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [countryFilter, setCountryFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
 
-  const { can } = usePermissionGate();
-
-  // Fetch entities
-  const {
-    data: entities = [],
-    isLoading,
-    error,
-  } = useQuery<Entity[]>({
-    queryKey: ["entities", searchTerm, countryFilter, statusFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        ...(searchTerm && { search: searchTerm }),
-        ...(countryFilter && { country: countryFilter }),
-        ...(statusFilter && { status: statusFilter }),
-      });
-
-      const response = await fetch(`/api/entities?${params}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch entities");
-      }
-
-      const result = await response.json();
-      return result.data;
-    },
-    staleTime: 30000,
+  // Build query string
+  const params = new URLSearchParams({
+    ...(searchTerm && { search: searchTerm }),
+    ...(countryFilter && { country: countryFilter }),
+    ...(statusFilter && { status: statusFilter }),
   });
 
-  const handleSearch = useCallback(
-    (value: string) => {
-      setSearchTerm(value);
-    },
-    []
+  // Fetch entities using SWR
+  const {
+    data: response,
+    isLoading,
+    error,
+  } = useSWR<{ success: boolean; data: Entity[] }>(
+    `/api/entities?${params}`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
+    }
   );
+
+  const entities = response?.data || [];
+
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
+
+  const countryMap: Record<string, string> = {
+    AE: "🇦🇪 United Arab Emirates",
+    SA: "🇸🇦 Saudi Arabia",
+    EG: "🇪🇬 Egypt",
+  };
+
+  const statusColors: Record<string, string> = {
+    ACTIVE: "bg-green-100 text-green-800",
+    PENDING: "bg-yellow-100 text-yellow-800",
+    ARCHIVED: "bg-gray-100 text-gray-800",
+    SUSPENDED: "bg-red-100 text-red-800",
+  };
 
   const columns = [
     {
@@ -76,203 +84,161 @@ export default function EntitiesPage() {
     {
       id: "country",
       header: "Country",
-      cell: (entity: Entity) => {
-        const countryMap: Record<string, string> = {
-          AE: "🇦🇪 UAE",
-          SA: "🇸🇦 KSA",
-          EG: "🇪🇬 Egypt",
-        };
-        return countryMap[entity.country] || entity.country;
-      },
-    },
-    {
-      id: "legalForm",
-      header: "Legal Form",
-      cell: (entity: Entity) => entity.legalForm || "—",
+      cell: (entity: Entity) => (
+        <span>{countryMap[entity.country] || entity.country}</span>
+      ),
     },
     {
       id: "status",
       header: "Status",
-      cell: (entity: Entity) => {
-        const statusStyles: Record<string, string> = {
-          ACTIVE: "bg-green-100 text-green-800",
-          PENDING: "bg-yellow-100 text-yellow-800",
-          ARCHIVED: "bg-gray-100 text-gray-800",
-        };
-        return (
-          <span
-            className={`px-2 py-1 rounded text-sm font-medium ${
-              statusStyles[entity.status] || "bg-gray-100 text-gray-800"
-            }`}
-          >
-            {entity.status}
-          </span>
-        );
-      },
+      cell: (entity: Entity) => (
+        <span
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+            statusColors[entity.status] || "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {entity.status}
+        </span>
+      ),
     },
     {
-      id: "registrations",
-      header: "Registrations",
-      cell: (entity: Entity) => {
-        const verified = entity.registrations.filter(
-          (r) => r.status === "VERIFIED"
-        ).length;
-        return `${verified}/${entity.registrations.length}`;
-      },
+      id: "legalForm",
+      header: "Legal Form",
+      cell: (entity: Entity) => <span>{entity.legalForm || "—"}</span>,
     },
     {
       id: "createdAt",
       header: "Created",
-      cell: (entity: Entity) => {
-        const date = new Date(entity.createdAt);
-        return date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-      },
+      cell: (entity: Entity) => (
+        <span className="text-gray-600 text-sm">
+          {new Date(entity.createdAt).toLocaleDateString()}
+        </span>
+      ),
     },
     {
       id: "actions",
       header: "Actions",
       cell: (entity: Entity) => (
-        <Link href={`/admin/entities/${entity.id}`}>
-          <Button variant="ghost" size="sm">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <Link
+          href={`/admin/entities/${entity.id}`}
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+        >
+          View
+          <ChevronRight className="w-4 h-4" />
         </Link>
       ),
     },
   ];
 
-  if (error) {
-    return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="text-lg font-semibold text-red-900">
-          Error Loading Entities
-        </h3>
-        <p className="text-red-700 mt-2">{error.message}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Entities</h1>
-          <p className="text-gray-500 mt-1">
-            Manage companies, individuals, and organizations
+    <PermissionGate
+      permission="entity:read"
+      fallback={
+        <div className="p-6 text-center">
+          <p className="text-gray-600">
+            You don't have permission to access this page.
           </p>
         </div>
-        {can("entities:create") && (
-          <Link href="/admin/entities/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Entity
-            </Button>
-          </Link>
-        )}
-      </div>
-
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search by name..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
+      }
+    >
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Entities</h1>
+            <p className="text-gray-600 mt-2">
+              Manage business entities and tax registrations
+            </p>
+          </div>
+          <PermissionGate permission="entity:create">
+            <Link href="/admin/entities/new">
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Entity
+              </Button>
+            </Link>
+          </PermissionGate>
         </div>
 
-        <select
-          value={countryFilter}
-          onChange={(e) => setCountryFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Countries</option>
-          <option value="AE">UAE</option>
-          <option value="SA">Saudi Arabia</option>
-          <option value="EG">Egypt</option>
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="PENDING">Pending</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
-      </div>
-
-      {/* Results Summary */}
-      <div className="text-sm text-gray-600">
-        {isLoading ? (
-          "Loading entities..."
-        ) : (
-          <>
-            Showing <strong>{entities.length}</strong> entit
-            {entities.length === 1 ? "y" : "ies"}
-          </>
-        )}
-      </div>
-
-      {/* Data Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {entities.length === 0 && !isLoading ? (
-          <div className="p-12 text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No entities found
-            </h3>
-            <p className="text-gray-500 mb-4">
-              Start by creating a new entity or importing from CSV
-            </p>
-            {can("entities:create") && (
-              <Link href="/admin/entities/new">
-                <Button>Create First Entity</Button>
-              </Link>
-            )}
+        {/* Filters */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search entities by name..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.id}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {entities.map((entity) => (
-                <tr
-                  key={entity.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={`${entity.id}-${col.id}`}
-                      className="px-6 py-4 text-sm text-gray-900"
-                    >
-                      {col.cell(entity)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <select
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white"
+          >
+            <option value="">All Countries</option>
+            <option value="AE">United Arab Emirates</option>
+            <option value="SA">Saudi Arabia</option>
+            <option value="EG">Egypt</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white"
+          >
+            <option value="">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="PENDING">Pending</option>
+            <option value="ARCHIVED">Archived</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
+        </div>
+
+        {/* Error State */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load entities. Please try again later.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
+        {/* Data Table */}
+        {!isLoading && entities.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <DataTable columns={columns} data={entities} />
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && entities.length === 0 && !error && (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <p className="text-gray-600 text-lg">No entities found</p>
+            <p className="text-gray-500 mt-2">
+              {searchTerm || countryFilter || statusFilter
+                ? "Try adjusting your filters"
+                : "Create your first entity to get started"}
+            </p>
+            <PermissionGate permission="entity:create">
+              <Link href="/admin/entities/new" className="mt-4 inline-block">
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create Entity
+                </Button>
+              </Link>
+            </PermissionGate>
+          </div>
         )}
       </div>
-    </div>
+    </PermissionGate>
   );
 }
