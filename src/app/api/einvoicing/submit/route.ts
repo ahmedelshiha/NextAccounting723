@@ -33,7 +33,7 @@ export const POST = withTenantContext(async (request: NextRequest) => {
     const invoice = await prisma.invoice.findFirst({
       where: { id: validated.invoiceId, tenantId },
       include: { items: true, client: true },
-    })
+    }) as any
 
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
