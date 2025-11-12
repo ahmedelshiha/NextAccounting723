@@ -132,7 +132,7 @@ export const PATCH = withTenantContext(async (
       return NextResponse.json(
         {
           error: 'Invalid request body',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       )
