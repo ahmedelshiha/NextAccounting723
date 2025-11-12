@@ -15,6 +15,26 @@ Conventions
 - RLS enforced in DB; add indices with migrations under prisma/migrations.
 - All UI components accessible, RTL-ready, and localized (src/lib/i18n, locales/).
 
+Recommended Architecture: Modular Component Structure
+- Goals: smaller files (~100–150 LOC), independent testing, lazy loading, team parallelism, performance, maintainability, reusability.
+- Foldering (example for Setup Wizard)
+  - src/components/portal/business-setup/SetupWizard.tsx (shell)
+  - src/components/portal/business-setup/tabs/{ExistingBusiness.tsx,NewStartup.tsx,Individual.tsx}
+  - src/hooks/business-setup/{useSetupForm.ts,useLicenseLookup.ts}
+  - src/lib/registries/{uae.ts,ksa.ts,egy.ts}
+  - src/services/entities/entitySetup.ts (service layer)
+  - src/app/api/entities/setup/route.ts and src/app/api/registries/[country]/[number]/route.ts
+  - src/types/entitySetup.ts
+- Patterns
+  - next/dynamic + React.Suspense per tab; React.memo for pure views; ErrorBoundary per tab.
+  - State isolation via Zustand store scoped to wizard; SWR per tab with cache keys; prefetch on tab focus.
+  - Strict typing with zod schemas; idempotency keys for writes; audit events.
+  - Accessibility: ARIA Tabs, roving tabindex, focus trap for dialogs; RTL mirroring.
+- Testing
+  - Unit tests for hooks/validators; component tests (Testing Library) for each tab; Playwright E2E flows; snapshot RTL.
+- Performance
+  - Code-split tabs, skeletons, defer non-critical requests; Sentry transactions around tab loads.
+
 ---
 
 ## Phase 0 — Foundations (Architecture, Security, Localization)
