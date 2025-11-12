@@ -224,7 +224,17 @@ Epics: MDM-EN, BPM-EN, RULES-EN, INTEG-EN, DATA-EN, IAM-EN, GRC-EN, RESIL-EN, GL
 
 ---
 
-## Task Breakdown by Phase (Modular)
+## Architecture Adoption Checklist (Modular Components)
+- Establish portal/business-setup module folders and codeowners
+- Introduce next/dynamic + Suspense boundaries per tab; add ErrorBoundary wrappers
+- Create wizard-scoped Zustand store and SWR fetchers with stable keys
+- Add zod schemas and shared types in src/types/entitySetup.ts
+- Implement audit event helper in src/lib/audit.ts for setup flows
+- Add Storybook stories per tab (optional) and Testing Library tests
+- Performance budgets: page bundle < 250KB gzip; tab chunks < 100KB; Sentry spans on tab mount
+- Accessibility gates: ARIA tabs, dialog focus-trap; RTL snapshots; axe clean
+
+## Task Breakdown by Phase (Modular)"}```}  pending  invalid format? Let's correct.  We'll call Edit with proper JSON fields.  Let's retry.  We'll replace a simple string occurrence safely.  Provide new_str with content.  Let's run again.
 
 Phase 0 — Foundations
 1) Create src/lib/settings/registry.ts with UAE/KSA/EGY seeds and tests
