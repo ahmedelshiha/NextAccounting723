@@ -57,23 +57,23 @@ describe('Compliance Rules Engine', () => {
 
   describe('Corporate Tax', () => {
     it('should require corporate tax for UAE companies with high turnover', () => {
-      const entity = mockEntity({ country: 'AE', type: 'company' });
+      const entity = mockEntity({ country: 'AE', metadata: { entityType: 'company' } });
       expect(calculateCorporateTaxObligation(entity, 500000)).toBe(true);
       expect(calculateCorporateTaxObligation(entity, 200000)).toBe(false);
     });
 
     it('should not require corporate tax for KSA entities (uses Zakat instead)', () => {
-      const entity = mockEntity({ country: 'SA', type: 'company' });
+      const entity = mockEntity({ country: 'SA', metadata: { entityType: 'company' } });
       expect(calculateCorporateTaxObligation(entity, 5000000)).toBe(false);
     });
 
     it('should require corporate tax for all Egyptian companies', () => {
-      const entity = mockEntity({ country: 'EG', type: 'company' });
+      const entity = mockEntity({ country: 'EG', metadata: { entityType: 'company' } });
       expect(calculateCorporateTaxObligation(entity, 100000)).toBe(true);
     });
 
     it('should not require corporate tax for Egyptian individuals', () => {
-      const entity = mockEntity({ country: 'EG', type: 'individual' });
+      const entity = mockEntity({ country: 'EG', metadata: { entityType: 'individual' } });
       expect(calculateCorporateTaxObligation(entity, 100000)).toBe(false);
     });
   });
