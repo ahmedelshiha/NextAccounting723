@@ -239,7 +239,7 @@ export async function findPotentialDuplicates(
       if (amountMatch && descriptionSimilarity > 0.8 && dateWindow) {
         duplicates.push({
           id: txn1.id,
-          amount: txn1.amount,
+          amount: txn1.amount.toString(),
           date: txn1.date,
           description: txn1.description,
           duplicates: [txn2.id],
