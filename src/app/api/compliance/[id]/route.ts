@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withTenantContext } from "@/lib/api-wrapper";
 import { requireTenantContext } from "@/lib/tenant-utils";
 import { logger } from "@/lib/logger";
@@ -16,7 +17,7 @@ const _api_GET = async (
     const { id } = await params;
     const ctx = requireTenantContext();
 
-    if (!ctx.userId) {
+    if (!ctx.userId || !ctx.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -62,7 +63,7 @@ const _api_PATCH = async (
     const { id } = await params;
     const ctx = requireTenantContext();
 
-    if (!ctx.userId) {
+    if (!ctx.userId || !ctx.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -89,7 +90,7 @@ const _api_PATCH = async (
     // Emit audit event
     await prisma.auditEvent.create({
       data: {
-        tenantId: ctx.tenantId!,
+        tenantId: ctx.tenantId,
         userId: ctx.userId,
         type: "filing.status.changed",
         resource: "filing",
